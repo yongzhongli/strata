@@ -1,3 +1,5 @@
+
+
 // Author: Shashwat Sharma
 
 // Copyright 2021 Shashwat Sharma and Piero Triverio
@@ -91,6 +93,7 @@ int main(int argc, char** argv)
     double y_obs = 0.0, z_obs = 0.21e-3;
 
     int Nx = 500; // Number of points in the sweep
+    int Nz = 10;
     double x_obs_min = std::abs(1.6e-4*lambda0);
     double x_obs_max = std::abs(1.6*lambda0);
 
@@ -110,7 +113,8 @@ int main(int argc, char** argv)
     // - along the rho axis, Lagrange polynomial interpolation of a given order is performed.
 
     // In this example, only two points are needed along z
-    std::vector<double> z_nodes = {z_src,z_obs};
+    std::vector<double> z_nodes;
+    strata::linspace(z_min, z_max, Nz, z_nodes);
 
     // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
     double lambda = lambda0/std::sqrt(9.8);
@@ -146,6 +150,7 @@ int main(int argc, char** argv)
 
     // Polynomial interpolation order
     s.order = 3;
+    s.order_z = 3;
 
     // Initialize the class with the given stackup and chosen settings.
     // The interpolation table will be generated at this point, so the initialization step could take a while.
@@ -226,3 +231,9 @@ int main(int argc, char** argv)
     return 0;
 
 }
+
+
+
+
+
+

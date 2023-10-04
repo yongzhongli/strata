@@ -36,6 +36,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <set>
 
 
 /*! \brief Class to store and manage frequency-dependent information for each layer.*/
@@ -145,6 +146,9 @@ public:
 
 	// Container to store lists of nodes along z (inner vector) per layer (outer vector) on which MGF (pre)computations are to take place.
 	std::vector<std::vector<double>> z_nodes;
+
+    // Container to store lists of nodes along z that set the boundary of each layer.
+    std::set<double> boundary_nodes;
 
 	// Vector to store lists of nodes along rho on which MGF (pre)computations are to take place.
 	std::vector<double> rho_nodes;

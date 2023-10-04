@@ -578,8 +578,19 @@ void LayerManager::InsertNodes_z(std::vector<double> &nodes)
 		// Sort and erase duplicates
 		std::sort(z_nodes[ii].begin(), z_nodes[ii].end());
 		z_nodes[ii].erase(std::unique(z_nodes[ii].begin(), z_nodes[ii].end(), [tol](double a, double b) { return std::abs(a - b) <= tol; }), z_nodes[ii].end());
-
 	}
+
+    // Find the boundary nodes
+
+    for (int ii = 0; ii < layers.size(); ii++)
+    {
+        if (!z_nodes[ii].empty())
+        {
+            boundary_nodes.insert(z_nodes[ii].front());
+            boundary_nodes.insert(z_nodes[ii].back());
+        }
+    }
+
 
 	return;
 

@@ -3,11 +3,11 @@ unit: mm # applies to all spatial coordinates
 
 dielectric_layers:
 
-    L1:
-        {zmin: 1.1, h: 0.7, epsr: 2.1, mur: 1, sigma: 0}
+    #L1:
+        #{zmin: 1.1, h: 0.7, epsr: 2.1, mur: 1, sigma: 0}
 
-    L2:
-        {zmin: 0.8, h: 0.3, epsr: 12.5, mur: 1, sigma: 0}
+    #L2:
+        #{zmin: 0.8, h: 0.3, epsr: 12.5, mur: 1, sigma: 0}
 
     L3:
         {zmin: 0.3, h: 0.5, epsr: 9.8, mur: 1, sigma: 0}

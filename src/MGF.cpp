@@ -350,7 +350,7 @@ void MGF::ComputeMGF(double x_diff, double y_diff, double z, double zp, std::arr
 	}
 	else if (s.method == MGF_INTERPOLATE)
 	{
-		ComputeMGF_Interpolation(rho, z, zp, _G, MGF_table, s.components);
+		ComputeMGF_Interpolation_withZ(rho, z, zp, _G, MGF_table, s.components);
 	}
 
 	if (s.extract_quasistatic || s.method == MGF_QUASISTATIC)
@@ -825,6 +825,73 @@ void MGF::ComputeMGF_Interpolation(double rho, double z, double zp, std::array<s
 
 }
 
+/*! \brief Driver to compute the MGF using a pre-computed interpolation table.*/
+template<std::size_t N>
+void MGF::ComputeMGF_Interpolation_withZ(double rho, double z, double zp, std::array<std::complex<double>, N> &G, std::vector<std::vector<table_entry<N>>> &table, std::vector<bool> &components)
+{
+
+    std::fill(G.begin(), G.end(), 0.0);
+
+    // Extract interpolation abscissae
+    std::vector<int> z_idx_stencil;
+    std::vector<int> zp_idx_stencil;
+    std::vector<double> z_stencil;
+    std::vector<double> zp_stencil;
+    GetStencil_z(z, z_idx_stencil, z_stencil);
+    GetStencil_z(zp, zp_idx_stencil, zp_stencil);
+    std::vector<int> cols = GetColumns(rho);
+
+    // Interpolate the MGF
+    for (int ii = 0; ii < cols.size(); ii++)
+    {
+        for (int jj = 0; jj < z_stencil.size(); jj++)
+        {
+            for (int kk = 0; kk < zp_stencil.size(); kk++)
+            {
+                // Compute the Lagrange polynomials
+                double L = 1.0;
+
+                // ====== Retrive the images at the above index pair ======
+
+                int idx_row = idxpair_to_row[std::make_pair(z_idx_stencil[jj], zp_idx_stencil[kk])];
+
+                for (int tt = 0; tt < cols.size(); tt++)
+                {
+                    if (tt == ii)
+                        continue;
+                    L *= (rho - lm.rho_nodes[cols[tt]])/(lm.rho_nodes[cols[ii]] - lm.rho_nodes[cols[tt]]);
+                }
+
+                for (int tt = 0; tt < z_stencil.size(); tt++)
+                {
+                    if (tt == jj)
+                        continue;
+                    L *= (z - z_stencil[tt])/(z_stencil[jj] - z_stencil[tt]);
+                }
+
+                for (int tt = 0; tt < zp_stencil.size(); tt++)
+                {
+                    if (tt == kk)
+                        continue;
+                    L *= (zp - zp_stencil[tt])/(zp_stencil[kk] - zp_stencil[tt]);
+                }
+
+
+                for (int tt = 0; tt < G.size(); tt++)
+                    if (components[tt])
+                        G[tt] += table[idx_row][cols[ii]].K[tt]*L;
+            }
+        }
+
+
+
+
+    }
+
+    return;
+
+}
+
 
 /*! \brief Function to compute the singularity factors for the quasistatic MGF.*/
 void MGF::ComputeSingularityFactors(double x_diff, double y_diff, double z, double zp)
@@ -1166,6 +1233,65 @@ int MGF::GetRow(double z, double zp)
 
 }
 
+/*! \brief Function to retrieve the interpolation stencil for a given z and zp.*/
+void MGF::GetStencil_z(double z, std::vector<int> &z_idx_stencil, std::vector<double> &z_stencil)
+{
+
+    if (!initialized)
+    {
+        throw std::logic_error("[ERROR] MGF:GetRow(): Table has not been generated. Call MGF::Initialize() first.");
+    }
+    
+
+    // ====== Locate the index of the z-node nearest to z ======
+
+    int layer_idx = lm.FindLayer(z);
+
+    std::vector<double> nodes = lm.z_nodes[layer_idx];
+
+    if (nodes.size() < s.order_z + 1)
+        z_stencil = nodes;
+    else
+    {
+        auto it = std::lower_bound(nodes.begin(), nodes.end(), z);
+
+        int left = (it - nodes.begin()) - 1;  // iterator arithmetic
+        int right = it - nodes.begin();
+
+        for (int i = 0; i < s.order_z + 1; ++i)
+        {
+            if (left < 0)
+            {
+                z_stencil.push_back(nodes[right++]); // If 'left' is out of bounds, select from the right.
+                continue;
+            }
+            if (right >= nodes.size())
+            {
+                z_stencil.push_back(nodes[left--]); // If 'right' is out of bounds, select from the left.
+                continue;
+            }
+
+            // Compare the absolute difference of the values at the 'left' and 'right' pointers to the target.
+            if (std::abs(z - nodes[left]) < std::abs(z - nodes[right])) {
+                z_stencil.push_back(nodes[left--]); // If left is closer, select it.
+            } else {
+                z_stencil.push_back(nodes[right++]); // Otherwise, select the right.
+            }
+
+        }
+
+        std::sort(z_stencil.begin(), z_stencil.end());
+    }
+
+
+    for (int i = 0; i < z_stencil.size(); i++)
+    {
+        z_idx_stencil.push_back(z_to_idx[z_stencil[i]]);
+    }
+
+
+
+}
 
 /*! \brief Function to retrieve the stencil points along rows for a given rho value.*/
 std::vector<int> MGF::GetColumns(double rho)

@@ -30,6 +30,10 @@ add_executable(dev_sandbox ${SRC_DIR}/dev_sandbox.cpp)
 target_include_directories(dev_sandbox PRIVATE ${INC_DIR} ${STRATA_INC})
 target_link_libraries(dev_sandbox ${STRATA_LIB})
 
+add_executable(testInterp_z ${SRC_DIR}/testInterp_z.cpp)
+target_include_directories(testInterp_z PRIVATE ${INC_DIR} ${STRATA_INC})
+target_link_libraries(testInterp_z ${STRATA_LIB})
+
 add_executable(testMGF ${SRC_DIR}/testMGF.cpp)
 target_include_directories(testMGF PRIVATE ${INC_DIR} ${STRATA_INC})
 target_link_libraries(testMGF ${STRATA_LIB})

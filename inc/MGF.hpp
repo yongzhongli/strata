@@ -84,6 +84,7 @@ struct MGF_settings
 	// ------ Interpolation ------
 
 	int order = 3;
+    int order_z = 1;
 	std::string filename, filename_curl;
 	bool load_table = false;
 	bool export_table = false;
@@ -148,6 +149,9 @@ public:
 	template<std::size_t N>
 	void ComputeMGF_Interpolation(double rho, double z, double zp, std::array<std::complex<double>, N> &G, std::vector<std::vector<table_entry<N>>> &table, std::vector<bool> &components);
 
+    template<std::size_t N>
+    void ComputeMGF_Interpolation_withZ(double rho, double z, double zp, std::array<std::complex<double>, N> &G, std::vector<std::vector<table_entry<N>>> &table, std::vector<bool> &components);
+
 	void ComputeSingularityFactors(double x_diff, double y_diff, double z, double zp);
 	void ComputeSingularityFactors();
 	void ComputeHomogeneousFactors();
@@ -161,6 +165,7 @@ public:
 	void TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl = false);
 	void GenerateTableMaps();
 	int GetRow(double z, double zp);
+    void GetStencil_z(double z, std::vector<int> &z_idx_stencil, std::vector<double> &z_stencil);
 	std::vector<int> GetColumns(double rho);
 
 	template<std::size_t N>

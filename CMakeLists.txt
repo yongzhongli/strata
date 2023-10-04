@@ -42,7 +42,7 @@ if (OPENMP_FOUND)
 endif()
 
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
 
@@ -167,7 +167,7 @@ SET(MGF_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/spectral_MGF.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lapacke_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/coordinate_system.cpp
-)
+        inc/interpolation_table.hpp)
 
 add_library(strata SHARED ${MGF_SRC})
 target_link_libraries(strata ${OPENBLAS_LIB} ${AmosBessel_LIB} ${YAML_LIB})
