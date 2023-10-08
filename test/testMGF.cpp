@@ -91,13 +91,13 @@ int main(int argc, char** argv)
 	// ------ Ling, Jin, 2000 ------
 
 	// For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
+
+    double x_src = 0.0, y_src = 0.0, z_src = 0.2e-3;
+    double x_obs = 0.1e-3, y_obs = 0.0;
 	
-	double x_src = 0.0, y_src = 0.0, z_src = 0.4e-3;
-	double y_obs = 0.0, z_obs = 1.4e-3;
-	
-	int Nx = 500; // Number of points in the sweep
-	double x_obs_min = std::abs(1.6e-4*lambda0);
-	double x_obs_max = std::abs(1.6e1*lambda0);
+	int Nz = 500; // Number of points in the sweep
+	double z_obs_min = 0.1e-3;
+	double z_obs_max = 0.7e-3;
 
 	// ------ Yuan, Sarkar, Salazar-Palma, 2006 ------
 
@@ -113,8 +113,8 @@ int main(int argc, char** argv)
 	// ------ Generate the points ------
 
 	// We can use the Matlab-like linspace or logspace functions to create linearly- or logarithmically-spaced vectors points, provided via the Strata namespace
-	std::vector<double> x_vec;
-	strata::logspace(std::log10(x_obs_min), std::log10(x_obs_max), Nx, x_vec);
+	std::vector<double> z_vec;
+	strata::logspace(std::log10(z_obs_min), std::log10(z_obs_max), Nz, z_vec);
 
 
 	// ====== Initialize the MGF class ======
@@ -142,22 +142,21 @@ int main(int argc, char** argv)
 	// For post-processing, we'll store the frequency and positions along the z axis in the header
 	outfile << "Frequency: " << f << " Hz" << std::endl;
 	outfile << "z_src: " << z_src << " m" << std::endl;
-	outfile << "z_obs: " << z_obs << " m" << std::endl;
 
 	// The lateral separation between source and observation points (rho) and all the MGF components is tabulated for each observation point
-	outfile << "\nrho Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
+	outfile << "\nz Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
-	// The MGF class needs to know which layers we're working with, in order to perform some precomputations which may save time later on.
-	// The working source and observation layers can be found with the FindLayer() method of the layer manager.
-	// In a realistic MoM setting, if we are looping through the points on the mesh of an object, and we know in which layer that object resides, we can just set the source and observation layers once for each pair of source and observation objects.
-	int i = lm.FindLayer(z_src);
-	int m = lm.FindLayer(z_obs);
-	mgf.SetLayers(i, m); // Source first, observation second
 
-	for (int ii = 0; ii < Nx; ii++)
+
+	for (int ii = 0; ii < Nz; ii++)
 	{
+        // The MGF class needs to know which layers we're working with, in order to perform some precomputations which may save time later on.
+        // The working source and observation layers can be found with the FindLayer() method of the layer manager.
+        // In a realistic MoM setting, if we are looping through the points on the mesh of an object, and we know in which layer that object resides, we can just set the source and observation layers once for each pair of source and observation objects.
+        int i = lm.FindLayer(z_src);
+        int m = lm.FindLayer(z_vec[ii]);
+        mgf.SetLayers(i, m); // Source first, observation second
 
-		double x_obs = x_vec[ii];
 
 		// In the x and y directions, the MGF only depends on the separation between source and observation points, rather than the actual coordinates
 		double x_diff = x_obs - x_src;
@@ -169,7 +168,7 @@ int main(int argc, char** argv)
 		std::complex<double> G_phi;
 
 		// Compute the MGF
-		mgf.ComputeMGF(x_diff, y_diff, z_obs, z_src, G_dyadic, G_phi);
+		mgf.ComputeMGF(x_diff, y_diff, z_vec[ii], z_src, G_dyadic, G_phi);
 
 		// The dyadic MGF components are now stored in G_dyadic, while the scalar MGF is stored in G_phi.
 
@@ -197,8 +196,7 @@ int main(int argc, char** argv)
 		// ====== Export data to the output text file ======
 
 		// Lateral separation
-		double rho = std::sqrt( std::pow(x_diff, 2) + std::pow(y_diff, 2) );
-		outfile << rho << " " << 
+		outfile << z_vec[ii] << " " <<
 				std::abs(G_dyadic[0]) << " " << std::abs(G_dyadic[1]) << " " << std::abs(G_dyadic[2]) << " " << 
 				std::abs(G_dyadic[3]) << " " << std::abs(G_dyadic[4]) << " " << std::abs(G_dyadic[5]) << " " << 
 				std::abs(G_dyadic[6]) << " " << std::abs(G_dyadic[7]) << " " << std::abs(G_dyadic[8]) << " " << std::abs(G_phi) << std::endl;

@@ -91,6 +91,7 @@ public:
 	void SetHalfspaces(double _epsr_top, double _mur_top, double _sigma_top, double _epsr_bot, double _mur_bot, double _sigma_bot, bool _isPEC_top, bool _isPEC_bot);
 	
 	void ProcessLayers(double f);
+    int GetNz_interp(double f);
 
 	int FindLayer(double z);
 

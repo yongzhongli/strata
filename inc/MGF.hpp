@@ -84,7 +84,7 @@ struct MGF_settings
 	// ------ Interpolation ------
 
 	int order = 3;
-    int order_z = 1;
+    int order_z = 3;
 	std::string filename, filename_curl;
 	bool load_table = false;
 	bool export_table = false;

@@ -461,6 +461,32 @@ void LayerManager::ProcessLayers(double f)
 }
 
 
+/*! \brief Function to compute frequency-dependent properties of all layers. Must be called whenever a change is made to the layer set.*/
+int LayerManager::GetNz_interp(double f)
+{
+    double z_min = layers.back().zmin;
+    double z_max = layers.front().zmax;
+    double h = z_max - z_min;
+
+
+    // Some useful constants are provided via the Strata namespace
+    double lambda0 = 1/(f * std::sqrt(strata::eps0*strata::mu0));
+
+    // get the max epsr for all the layers
+    std::vector<double> epsr_all;
+    for (int ii = 0; ii < layers.size(); ii++)
+    {
+        epsr_all.push_back(layers[ii].epsr);
+    }
+    double max_epsr = *std::max_element(epsr_all.begin(),epsr_all.end());
+    double lambda = lambda0/std::sqrt(max_epsr);
+
+    int N_z = 40.0 * (h/lambda);
+
+    return N_z;
+
+}
+
 /*! \brief Function to find the layer within which a particular z-coordinate exists. Returns -1 if no eligible layer was found.*/
 int LayerManager::FindLayer(double z)
 {
