@@ -461,31 +461,79 @@ void LayerManager::ProcessLayers(double f)
 }
 
 
-/*! \brief Function to compute frequency-dependent properties of all layers. Must be called whenever a change is made to the layer set.*/
-int LayerManager::GetNz_interp(double f)
+/*! \brief Function to set the z nodes to tabulate multilayer Green's function.*/
+void LayerManager::SetZnodes_interp(double f, std::vector<double> &z_nodes, int N_lambda)
 {
-    double z_min = layers.back().zmin;
-    double z_max = layers.front().zmax;
-    double h = z_max - z_min;
-
-
     // Some useful constants are provided via the Strata namespace
     double lambda0 = 1/(f * std::sqrt(strata::eps0*strata::mu0));
+    double dis_threshold = 1e-8;
 
-    // get the max epsr for all the layers
-    std::vector<double> epsr_all;
-    for (int ii = 0; ii < layers.size(); ii++)
+    for (int ii = layers.size() - 1; ii >= 0; ii--)
     {
-        epsr_all.push_back(layers[ii].epsr);
+        std::vector<double> z_nodes_local;
+
+        double h = layers[ii].zmax - layers[ii].zmin;
+        double lambda = lambda0/std::sqrt(layers[ii].epsr);
+        double electrical_size = h / lambda;
+        double _Nz = N_lambda * electrical_size;
+        int Nz = (int)std::round(_Nz);
+
+        // Set the z-nodes based on the calculated number of interpolation points, note that each layer should at least have two nodes
+        double z_min_node = layers[ii].zmin + dis_threshold;
+        double z_max_node = layers[ii].zmax - dis_threshold;
+
+        // within each layer, the interpolation points are uniform
+        if (Nz > 2)
+            linspace(z_min_node,z_max_node,Nz,z_nodes_local);
+        else
+        {
+            z_nodes_local.push_back(z_min_node);
+            z_nodes_local.push_back(z_max_node);
+        }
+
+        z_nodes.insert(z_nodes.end(), z_nodes_local.begin(), z_nodes_local.end());
     }
-    double max_epsr = *std::max_element(epsr_all.begin(),epsr_all.end());
-    double lambda = lambda0/std::sqrt(max_epsr);
 
-    int N_z = 40.0 * (h/lambda);
 
-    return N_z;
+
+    return ;
 
 }
+
+/*! \brief Function to set the z nodes based on the FFT grid to tabulate multilayer Green's function. Consider just object in one layer*/
+void LayerManager::SetZnodes_interpGrid(double f, std::vector<double> &z_nodes, int N_lambda, std::vector<double> grid_z)
+{
+    // Some useful constants are provided via the Strata namespace
+    double lambda0 = 1/(f * std::sqrt(strata::eps0*strata::mu0));
+    double dis_threshold = 1e-8;
+    double z_min = grid_z[0];
+    double z_max = grid_z[grid_z.size()-1];
+
+    // find which layer the nodes occupy
+    int idx_layer = FindLayer(z_min);
+
+    double h = z_max - z_min;
+    double lambda = lambda0/std::sqrt(layers[idx_layer].epsr);
+    double electrical_size = h / lambda;
+    double _Nz = N_lambda * electrical_size;
+    int Nz = (int)std::round(_Nz);
+
+
+    // within each layer, the interpolation points are uniform
+    if (Nz > 2)
+        linspace(z_min,z_max,Nz,z_nodes);
+    else
+    {
+        z_nodes.push_back(z_min);
+        z_nodes.push_back(z_max);
+    }
+
+    z_nodes.insert(z_nodes.end(), z_nodes.begin(), z_nodes.end());
+
+    return ;
+
+}
+
 
 /*! \brief Function to find the layer within which a particular z-coordinate exists. Returns -1 if no eligible layer was found.*/
 int LayerManager::FindLayer(double z)

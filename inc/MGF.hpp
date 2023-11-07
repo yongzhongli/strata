@@ -70,6 +70,7 @@ struct MGF_settings
 	// ====== Basic settings ======
 
 	int method = MGF_INTERPOLATE;
+    bool interpolate_z = false;
 	bool extract_quasistatic = false;
 	bool extract_singularities = false;
 	bool extract_homogeneous = false;
@@ -85,6 +86,7 @@ struct MGF_settings
 
 	int order = 3;
     int order_z = 3;
+    double N_lambda = 20.0;
 	std::string filename, filename_curl;
 	bool load_table = false;
 	bool export_table = false;

@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
 
     double x_src = 0.0, y_src = 0.0, z_src = 0.2e-3;
-    double y_obs = 0.0, z_obs = 0.21e-3;
+    double y_obs = 0.1e-3, z_obs = 0.0e-3;
 
     int Nx = 500; // Number of points in the sweep
     double x_obs_min = std::abs(1.6e-4*lambda0);

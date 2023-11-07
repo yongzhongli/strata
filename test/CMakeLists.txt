@@ -34,6 +34,10 @@ add_executable(testInterp_z ${SRC_DIR}/testInterp_z.cpp)
 target_include_directories(testInterp_z PRIVATE ${INC_DIR} ${STRATA_INC})
 target_link_libraries(testInterp_z ${STRATA_LIB})
 
+add_executable(testMGF_ref ${SRC_DIR}/testMGF_ref.cpp)
+target_include_directories(testMGF_ref PRIVATE ${INC_DIR} ${STRATA_INC})
+target_link_libraries(testMGF_ref ${STRATA_LIB})
+
 add_executable(testMGF ${SRC_DIR}/testMGF.cpp)
 target_include_directories(testMGF PRIVATE ${INC_DIR} ${STRATA_INC})
 target_link_libraries(testMGF ${STRATA_LIB})

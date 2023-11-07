@@ -350,7 +350,10 @@ void MGF::ComputeMGF(double x_diff, double y_diff, double z, double zp, std::arr
 	}
 	else if (s.method == MGF_INTERPOLATE)
 	{
-		ComputeMGF_Interpolation_withZ(rho, z, zp, _G, MGF_table, s.components);
+        if(s.interpolate_z)
+		    ComputeMGF_Interpolation_withZ(rho, z, zp, _G, MGF_table, s.components);
+        else
+            ComputeMGF_Interpolation(rho, z, zp, _G, MGF_table, s.components);
 	}
 
 	if (s.extract_quasistatic || s.method == MGF_QUASISTATIC)
@@ -832,13 +835,17 @@ void MGF::ComputeMGF_Interpolation_withZ(double rho, double z, double zp, std::a
 
     std::fill(G.begin(), G.end(), 0.0);
 
-    // Extract interpolation abscissae
+    // Extract interpolation abscissae (index and position)
     std::vector<int> z_idx_stencil;
     std::vector<int> zp_idx_stencil;
+
     std::vector<double> z_stencil;
     std::vector<double> zp_stencil;
+
     GetStencil_z(z, z_idx_stencil, z_stencil);
     GetStencil_z(zp, zp_idx_stencil, zp_stencil);
+
+    // Get interpolation points for rho
     std::vector<int> cols = GetColumns(rho);
 
     // Interpolate the MGF
