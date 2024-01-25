@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "MGFdata_HFSS_package_interp_real.txt";
-        out_file2 = "MGFdata_HFSS_package_interp_imag.txt";
+        out_file1 = "MGFdata_metagrating_interp_real.txt";
+        out_file2 = "MGFdata_metagrating_interp_imag.txt";
     }
     else
     {
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 1.0e9;
+    double f = 10.0e9;
     double omega = 2.0*M_PI*f;
 
     // Some useful constants are provided via the Strata namespace
@@ -89,7 +89,6 @@ int main(int argc, char** argv)
     // ====== Set up the source and observation points ======
 
     // Set the source and observation (obs) points
-    // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
 
     double x_src = 0.0, y_src = 0.0;
     double x_obs = 0.05e-3, y_obs = 0.0;
@@ -97,17 +96,18 @@ int main(int argc, char** argv)
     int Nx = 500; // Number of points in the sweep
     int Nz_interpolated = 100; // Number of points to be interpolated
 
+    // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
     double x_obs_min = std::abs(1e-4*lambda0); // define the range of rho
     double x_obs_max = std::abs(0.1*lambda0);
 
-    double lambda = lambda0/std::sqrt(3.3);
+    std::cout << "x_obs_min: " << x_obs_min << "(m)" << std::endl;
+    std::cout << "x_obs_max: " << x_obs_max << "(m)" << std::endl;
+
+    double lambda = lambda0/std::sqrt(2.2);
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
     double z_max = lm.layers.front().zmax - dis_threshold;
-
-    //double z_interp_min = lm.layers.back().zmin;
-    //double z_interp_max = lm.layers.front().zmax;
 
     double z_interp_min = z_min;
     double z_interp_max = z_max;
@@ -133,21 +133,18 @@ int main(int argc, char** argv)
 
     // This class stores all the settings we want to use
     MGF_settings s;
+    std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
     std::vector<double> z_nodes;
-    lm.SetZnodes_interp(f,z_nodes,s.N_lambda); // Number of interpolation points
-    std::vector<double> z_grid_test = {1.2e-3,1.6e-3};
-    std::vector<double> z_nodes_test;
-    lm.SetZnodes_interpGrid(f,z_nodes_test,s.N_lambda, z_grid_test); // Number of interpolation points
-
+    lm.SetZnodes_interpGrid(f, z_nodes, s.N_lambda, z_grid_test); // Number of interpolation points
+    s.interpolate_z = true;
     // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
     double electrical_size_x = (x_obs_max - x_obs_min)/lambda;
     int N_rho = 10.0*electrical_size_x;
 
 
-
     // Strata comes with Matlab-like linspace and logspace functions for convenience
-    std::vector<double> rho_nodes;
-    strata::linspace(std::sqrt(std::pow(x_obs_min, 2) + std::pow(y_obs, 2)), std::sqrt(std::pow(x_obs_max, 2) + std::pow(y_obs, 2)), std::max(N_rho,10), rho_nodes);
+    std::vector<double> rho_nodes; strata::linspace(std::sqrt(std::pow(x_obs_min, 2) + std::pow(y_obs, 2)), std::sqrt(std::pow(x_obs_max, 2) + std::pow(y_obs, 2)), std::max(N_rho,10), rho_nodes);
+
 
     // Provide the layer manager with the z and rho nodes
     lm.ClearNodes_z();
@@ -155,9 +152,6 @@ int main(int argc, char** argv)
 
     lm.ClearNodes_rho();
     lm.InsertNodes_rho(rho_nodes);
-
-
-
 
     // This class is the "engine" which will compute the MGF
     MGF mgf;
@@ -172,8 +166,8 @@ int main(int argc, char** argv)
     s.extract_quasistatic = true;
 
     // Polynomial interpolation order
-    s.order = 3;
-    s.order_z = 3;
+    s.order = 2;
+    s.order_z = 2;
 
     // Initialize the class with the given stackup and chosen settings.
     // The interpolation table will be generated at this point, so the initialization step could take a while.
@@ -181,7 +175,6 @@ int main(int argc, char** argv)
     mgf.Initialize(f, lm, s);
     std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
     static int Interpolation_initialization = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count();
-
 
     // ====== Compute the MGF ======
 
@@ -193,9 +186,14 @@ int main(int argc, char** argv)
     outfile1 << "Frequency: " << f << " Hz" << std::endl;
     outfile2 << "Frequency: " << f << " Hz" << std::endl;
 
-    // The lateral separation between source and observation points (rho) and all the MGF components is tabulated for each observation point
+    // The lateral separation between the source and observation points (rho) and all the MGF components is tabulated for each observation point
     outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
     outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
+
+    std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
+    mgf.adaptiveInterpolation(mgf);
+    std::chrono::steady_clock::time_point end3 = std::chrono::steady_clock::now();
+    static int AdaptiveInterpolation = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - begin3).count();
 
     std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
     for (int ii = 0; ii < Nz_interpolated; ii++) {
@@ -225,24 +223,6 @@ int main(int argc, char** argv)
             // The dyadic MGF components are now stored in G_dyadic, while the scalar MGF is stored in G_phi.
 
 
-            // ====== Optional modifications to the output ======
-
-            // With reference to Michalski, Zheng, TAP 1990, 38 (3), equations (50)--(53), the MGF we computed above ** does include ** the cos and sin pre-factors. However, in literature, the MGF is often reported without these pre-factors. Therefore, for the purpose of this example, and to make direct comparisons to data from literature, those prefactors are cancelled out below. This section of code would not be needed in an actual MoM-type application.
-
-            std::complex<double> zeta = std::atan2(y_diff, x_diff);
-            std::complex<double> cos_term = std::cos(zeta);
-            std::complex<double> sin_term = std::sin(zeta);
-
-            if (std::abs(cos_term) > 0.0) {
-                G_dyadic[2] /= cos_term;
-                G_dyadic[6] /= cos_term;
-            }
-            if (std::abs(sin_term) > 0.0) {
-                G_dyadic[5] /= sin_term;
-                G_dyadic[7] /= sin_term;
-            }
-
-
             // ====== Export data to the output text file ======
 
             // Lateral separation
@@ -265,10 +245,11 @@ int main(int argc, char** argv)
 
     if (print_log)
     {
-        std::cout << "Nz: " << z_nodes.size() << std::endl;
+        std::cout << "Nz: " << mgf.lm.z_nodes[0].size() << std::endl;
         std::cout << "Nz_interpolated: " << Nz_interpolated << std::endl;
         std::cout << "z_interp_min: " << z_interp_min << ", z_interp_max: " << z_interp_max << std::endl;
         std::cout << "Initialize the interpolation table: " << Interpolation_initialization << "(ms)" << std::endl;
+        std::cout << "Update the interpolation table: " << AdaptiveInterpolation << "(ms)" << std::endl;
         std::cout << "Compute the MGF: " << MGF_computation << "(ms)" << std::endl;
     }
 

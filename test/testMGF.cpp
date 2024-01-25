@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	lm.ProcessTechFile(tech_file);
 
 	// Set the analysis frequency and wave number
-	double f = 3.0e9;
+	double f = 1.0e9;
 	double omega = 2.0*M_PI*f;
 
 	// Some useful constants are provided via the Strata namespace
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
     double x_src = 0.0, y_src = 0.0;
     double x_obs = 0.05e-3, y_obs = 0.0;
 	
-	int Nz = 100; // Number of points in the sweep
+	int Nz = 5; // Number of points in the sweep
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
@@ -181,26 +181,6 @@ int main(int argc, char** argv)
             mgf.ComputeMGF(x_diff, y_diff, z_obs_vec[jj], z_src_vec[ii], G_dyadic, G_phi);
 
             // The dyadic MGF components are now stored in G_dyadic, while the scalar MGF is stored in G_phi.
-
-
-            // ====== Optional modifications to the output ======
-
-            // With reference to Michalski, Zheng, TAP 1990, 38 (3), equations (50)--(53), the MGF we computed above ** does include ** the cos and sin pre-factors. However, in literature, the MGF is often reported without these pre-factors. Therefore, for the purpose of this example, and to make direct comparisons to data from literature, those prefactors are cancelled out below. This section of code would not be needed in an actual MoM-type application.
-
-            std::complex<double> zeta = std::atan2(y_diff, x_diff);
-            std::complex<double> cos_term = std::cos(zeta);
-            std::complex<double> sin_term = std::sin(zeta);
-
-            if (std::abs(cos_term) > 0.0)
-            {
-                G_dyadic[2] /= cos_term;
-                G_dyadic[6] /= cos_term;
-            }
-            if (std::abs(sin_term) > 0.0)
-            {
-                G_dyadic[5] /= sin_term;
-                G_dyadic[7] /= sin_term;
-            }
 
 
             // ====== Export data to the output text file ======

@@ -525,10 +525,10 @@ void LayerManager::SetZnodes_interpGrid(double f, std::vector<double> &z_nodes, 
     else
     {
         z_nodes.push_back(z_min);
+        //z_nodes.push_back((z_min + z_max)/2);
         z_nodes.push_back(z_max);
-    }
 
-    z_nodes.insert(z_nodes.end(), z_nodes.begin(), z_nodes.end());
+    }
 
     return ;
 

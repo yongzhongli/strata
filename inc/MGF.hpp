@@ -71,6 +71,7 @@ struct MGF_settings
 
 	int method = MGF_INTERPOLATE;
     bool interpolate_z = false;
+    bool adaptive_interpolation = false;
 	bool extract_quasistatic = false;
 	bool extract_singularities = false;
 	bool extract_homogeneous = false;
@@ -120,6 +121,17 @@ public:
 	// ============ Interface ============
 
     void Initialize(double _f, LayerManager &_lm, MGF_settings &_s);
+    void adaptiveInterpolation(MGF &mgf);
+    void updateZnodes(MGF &mgf);
+    void updateRhonodes(MGF &mgf);
+    bool isMidpointCorrect(double rho, double z_src, double z_test, bool test_rho);
+    void addRhoTable(MGF &mgf, double rho_test);
+    void addZTable(MGF &mgf, double z_test, int layer);
+    void plotRhoNodes(MGF mgf, std::vector<double> z_gridpoints);
+    void processRhoTests(MGF& mgf, double rho_spacing, double z_test, double z_src, int level, std::vector<double>& rho_tests);
+    void processZTests(MGF& mgf, int layer_idx, double rho_test, double z_spacing, double z_test, double z_src, int level, std::vector<double>& z_tests);
+    void test_addRhoTable_recursive(MGF &mgf, double rho_test_l1, double rho_spacing, double z_test, double z_src, int level, std::vector<double> &rho_test_l2);
+    void test_addZTable_recursive(MGF &mgf, int layer_idx, double rho_test, double z_spacing, double z_test, double z_src, int level, std::vector<double> &z_tests_l2);
     void SetLayers(int _i, int _m);
 	void SetSingularityExtraction(bool extract_singularities);
 	void SetComponents(std::vector<bool> components);
@@ -165,7 +177,13 @@ public:
 	
 	template<std::size_t N>
 	void TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl = false);
-	void GenerateTableMaps();
+    template<std::size_t N>
+    void AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int z_idx, int z_new_idx, bool curl = false);
+    template<std::size_t N>
+    void AppendMGFTable_rho(std::vector<std::vector<table_entry<N>>> &table, int rho_idx, int rho_new_idx, bool curl = false);
+    void GenerateTableMaps();
+    void AddTableMaps_z(int z_idx, int z_new_idx);
+    void AddTableMaps_rho();
 	int GetRow(double z, double zp);
     void GetStencil_z(double z, std::vector<int> &z_idx_stencil, std::vector<double> &z_stencil);
 	std::vector<int> GetColumns(double rho);
