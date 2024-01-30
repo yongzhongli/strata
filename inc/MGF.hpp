@@ -87,7 +87,8 @@ struct MGF_settings
 
 	int order = 3;
     int order_z = 3;
-    double N_lambda = 20.0;
+    double N_lambda = 10.0;
+    double adaptive_threshold = 0.005;
 	std::string filename, filename_curl;
 	bool load_table = false;
 	bool export_table = false;
@@ -124,7 +125,7 @@ public:
     void adaptiveInterpolation(MGF &mgf);
     void updateZnodes(MGF &mgf);
     void updateRhonodes(MGF &mgf);
-    bool isMidpointCorrect(double rho, double z_src, double z_test, bool test_rho);
+    bool isMidpointCorrect(double rho, double z_src, double z_test,  double adaptive_threshold, bool test_rho);
     void addRhoTable(MGF &mgf, double rho_test);
     void addZTable(MGF &mgf, double z_test, int layer);
     void plotRhoNodes(MGF mgf, std::vector<double> z_gridpoints);

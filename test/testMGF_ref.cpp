@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 30.0e9;
+    double f = 10.0e9;
     double omega = 2.0*M_PI*f;
 
     // Some useful constants are provided via the Strata namespace

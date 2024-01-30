@@ -91,14 +91,14 @@ int main(int argc, char** argv)
     // Set the source and observation (obs) points
 
     double x_src = 0.0, y_src = 0.0;
-    double x_obs = 0.05e-3, y_obs = 0.0;
+    double x_obs = 1.0e-2, y_obs = 0.0;
 
     int Nx = 500; // Number of points in the sweep
     int Nz_interpolated = 100; // Number of points to be interpolated
 
-    // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
+    // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 1 wavelengths away from the source point
     double x_obs_min = std::abs(1e-4*lambda0); // define the range of rho
-    double x_obs_max = std::abs(0.1*lambda0);
+    double x_obs_max = std::abs(1.0*lambda0);
 
     std::cout << "x_obs_min: " << x_obs_min << "(m)" << std::endl;
     std::cout << "x_obs_max: " << x_obs_max << "(m)" << std::endl;
@@ -133,7 +133,8 @@ int main(int argc, char** argv)
 
     // This class stores all the settings we want to use
     MGF_settings s;
-    std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
+    //std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
+    std::vector<double> z_grid_test = {-0.99e-3, 4.99e-3};
     std::vector<double> z_nodes;
     lm.SetZnodes_interpGrid(f, z_nodes, s.N_lambda, z_grid_test); // Number of interpolation points
     s.interpolate_z = true;
@@ -190,6 +191,9 @@ int main(int argc, char** argv)
     outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
     outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
+    std::cout << "Number of z points: " << z_nodes.size() << std::endl;
+    std::cout << "Number of rho points: " << rho_nodes.size() << std::endl;
+
     std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
     mgf.adaptiveInterpolation(mgf);
     std::chrono::steady_clock::time_point end3 = std::chrono::steady_clock::now();
@@ -205,7 +209,6 @@ int main(int argc, char** argv)
             int i = lm.FindLayer(z_src_vec[ii]);
             int m = lm.FindLayer(z_obs_vec[jj]);
             mgf.SetLayers(i, m); // Source first, observation second
-
 
 
             // In the x and y directions, the MGF only depends on the separation between source and observation points, rather than the actual coordinates
