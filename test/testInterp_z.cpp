@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "MGFdata_metagrating_interp_real.txt";
-        out_file2 = "MGFdata_metagrating_interp_imag.txt";
+        out_file1 = "multiple_layers_interp_real.txt";
+        out_file2 = "multiple_layers_interp_imag.txt";
     }
     else
     {
@@ -133,10 +133,11 @@ int main(int argc, char** argv)
 
     // This class stores all the settings we want to use
     MGF_settings s;
-    //std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
-    std::vector<double> z_grid_test = {-0.99e-3, 4.99e-3};
-    std::vector<double> z_nodes;
-    lm.SetZnodes_interpGrid(f, z_nodes, s.N_lambda, z_grid_test); // Number of interpolation points
+
+    std::vector<std::vector<double>> z_nodes_2D;
+    std::vector<double> z_nodes_1D;
+
+    lm.SetZnodes_interpGrid(f, z_nodes_2D, s.N_lambda); // Number of interpolation points
     s.interpolate_z = true;
     // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
     double electrical_size_x = (x_obs_max - x_obs_min)/lambda;
@@ -149,7 +150,11 @@ int main(int argc, char** argv)
 
     // Provide the layer manager with the z and rho nodes
     lm.ClearNodes_z();
-    lm.InsertNodes_z(z_nodes);
+    // Iterate over each sub-vector and insert its elements into z_nodes_1D
+    for (const auto& subVec : z_nodes_2D) {
+        z_nodes_1D.insert(z_nodes_1D.end(), subVec.begin(), subVec.end());
+    }
+    lm.InsertNodes_z(z_nodes_1D);
 
     lm.ClearNodes_rho();
     lm.InsertNodes_rho(rho_nodes);
@@ -191,7 +196,7 @@ int main(int argc, char** argv)
     outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
     outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
-    std::cout << "Number of z points: " << z_nodes.size() << std::endl;
+    std::cout << "Number of z points: " << z_nodes_1D.size() << std::endl;
     std::cout << "Number of rho points: " << rho_nodes.size() << std::endl;
 
     std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();

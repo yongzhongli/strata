@@ -179,11 +179,11 @@ public:
 	template<std::size_t N>
 	void TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl = false);
     template<std::size_t N>
-    void AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int z_idx, int z_new_idx, bool curl = false);
+    void AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int layer_idx, int z_idx, int z_new_idx, bool curl = false);
     template<std::size_t N>
     void AppendMGFTable_rho(std::vector<std::vector<table_entry<N>>> &table, int rho_idx, int rho_new_idx, bool curl = false);
     void GenerateTableMaps();
-    void AddTableMaps_z(int z_idx, int z_new_idx);
+    void AddTableMaps_z(int layer_idx, int z_idx, int z_new_idx);
     void AddTableMaps_rho();
 	int GetRow(double z, double zp);
     void GetStencil_z(double z, std::vector<int> &z_idx_stencil, std::vector<double> &z_stencil);

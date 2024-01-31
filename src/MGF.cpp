@@ -237,6 +237,7 @@ void MGF::adaptiveInterpolation(MGF &mgf)
 {
     updateRhonodes(mgf);
     updateZnodes(mgf);
+
     return;
 }
 
@@ -246,7 +247,7 @@ void MGF::updateZnodes(MGF &mgf)
 
     std::cout << "========================= Update the z nodes =========================" << std::endl;
 
-    for (int layer = 0; layer < mgf.lm.z_nodes.size(); layer++)
+    for (int layer = 0; layer < mgf.lm.layers.size(); layer++)
     {
         // Ensure the vector has at least 3 elements
         if (mgf.lm.z_nodes[layer].size() < 2) {
@@ -257,7 +258,7 @@ void MGF::updateZnodes(MGF &mgf)
 
         for (int ii = 0; ii < mgf.lm.z_nodes[layer].size() - 1; ii++)
         {
-            double z_test = (mgf.lm.z_nodes[layer][ii+1]+mgf.lm.z_nodes[layer][ii])/2;
+            double z_test = (mgf.lm.z_nodes[layer][ii+1] + mgf.lm.z_nodes[layer][ii])/2;
             z_test_nodes.push_back(z_test);
         }
 
@@ -269,7 +270,7 @@ void MGF::updateZnodes(MGF &mgf)
         {
             double z_test = z_test_nodes[ii];
             double z_src = z_test_nodes[ii];
-            //double z_src = mgf.lm.z_nodes[layer][0];
+
             double z_spacing = mgf.lm.z_nodes[layer][ii + 1] - mgf.lm.z_nodes[layer][ii];
             int level = 1;
 
@@ -412,6 +413,8 @@ void MGF::addRhoTable(MGF &mgf, double rho_test)
 
     // Update the interpolation table
     AppendMGFTable_rho(mgf.MGF_table, index, rho_size + 1);
+
+    std::cout << "-->Add this point to the interpolation table!" << std::endl;
 }
 
 void MGF::addZTable(MGF &mgf, double z_test, int layer)
@@ -427,7 +430,7 @@ void MGF::addZTable(MGF &mgf, double z_test, int layer)
     mgf.lm.z_nodes[layer].insert(position, z_test);
 
     // Update the interpolation table
-    AppendMGFTable_z(mgf.MGF_table, index, z_size + 1);
+    AppendMGFTable_z(mgf.MGF_table, layer, index, z_size + 1);
 
     std::cout << "-->Add this point to the interpolation table!" << std::endl;
 }
@@ -1356,7 +1359,7 @@ void MGF::TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl
 }
 
 template<std::size_t N>
-void MGF::AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int z_idx, int z_new_size, bool curl)
+void MGF::AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int layer_idx, int z_idx, int z_new_size, bool curl)
 {
 
     if (lm.z_nodes.size() < 1)
@@ -1366,73 +1369,80 @@ void MGF::AppendMGFTable_z(std::vector<std::vector<table_entry<N>>> &table, int 
     }
 
 
-
     // ====== Generate index maps ======
 
-    AddTableMaps_z(z_idx, z_new_size);
+    AddTableMaps_z(layer_idx, z_idx, z_new_size);
 
 
     // ====== Generate table ======
 
-    smgf.SetLayers(0, 0);
-    i = 0;
-    m = 0;
-
     // Traverse observer z-nodes
-    for (int tt = 0; tt < lm.z_nodes[0].size(); tt++) {
+    for (int ii = 0; ii < lm.layers.size(); ii++)
+    {
+        smgf.SetLayers(layer_idx, ii);
 
-        double zp = lm.z_nodes[0][z_idx];
-        double z = lm.z_nodes[0][tt];
+        for (int tt = 0; tt < lm.z_nodes[ii].size(); tt++) {
 
-        // Generate all entries for this row
-        table.push_back(std::vector<table_entry<N>>(lm.rho_nodes.size()));
+            double zp = lm.z_nodes[layer_idx][z_idx];
+            double z = lm.z_nodes[ii][tt];
 
-        for (int qq = 0; qq < lm.rho_nodes.size(); qq++) {
-            double rho = lm.rho_nodes[qq];
+            // Generate all entries for this row
+            table.push_back(std::vector<table_entry<N>>(lm.rho_nodes.size()));
 
-            if (!curl) {
-                if (s.sampling_method == MGF_INTEGRATE)
-                    ComputeMGF_Integration(rho, z, zp, table.back()[qq].K);
-                else if (s.sampling_method == MGF_DCIM)
-                    ComputeMGF_DCIM(rho, z, zp, table.back()[qq].K);
-            } else {
-                if (s.sampling_method == MGF_INTEGRATE)
-                    ComputeCurlMGF_Integration(rho, z, zp, table.back()[qq].K);
-                else if (s.sampling_method == MGF_DCIM)
-                    ComputeCurlMGF_DCIM(rho, z, zp, table.back()[qq].K);
+            for (int qq = 0; qq < lm.rho_nodes.size(); qq++) {
+                double rho = lm.rho_nodes[qq];
+
+                if (!curl) {
+                    if (s.sampling_method == MGF_INTEGRATE)
+                        ComputeMGF_Integration(rho, z, zp, table.back()[qq].K);
+                    else if (s.sampling_method == MGF_DCIM)
+                        ComputeMGF_DCIM(rho, z, zp, table.back()[qq].K);
+                } else {
+                    if (s.sampling_method == MGF_INTEGRATE)
+                        ComputeCurlMGF_Integration(rho, z, zp, table.back()[qq].K);
+                    else if (s.sampling_method == MGF_DCIM)
+                        ComputeCurlMGF_DCIM(rho, z, zp, table.back()[qq].K);
+                }
             }
         }
     }
+
 
     // Traverse source z-nodes
-    for (int tt = 0; tt < lm.z_nodes[0].size(); tt++) {
+    for (int ii = 0; ii < lm.layers.size(); ii++)
+    {
+        smgf.SetLayers(ii, layer_idx);
 
-        double zp = lm.z_nodes[0][tt];
+        for (int tt = 0; tt < lm.z_nodes[ii].size(); tt++)
+        {
+            double zp = lm.z_nodes[ii][tt];
 
-        if (zp == lm.z_nodes[0][z_idx])
-            continue;
+            if (zp == lm.z_nodes[layer_idx][z_idx])
+                continue;
 
-        double z = lm.z_nodes[0][z_idx];
+            double z = lm.z_nodes[layer_idx][z_idx];
 
-        // Generate all entries for this row
-        table.push_back(std::vector<table_entry<N>>(lm.rho_nodes.size()));
+            // Generate all entries for this row
+            table.push_back(std::vector<table_entry<N>>(lm.rho_nodes.size()));
 
-        for (int qq = 0; qq < lm.rho_nodes.size(); qq++) {
-            double rho = lm.rho_nodes[qq];
+            for (int qq = 0; qq < lm.rho_nodes.size(); qq++) {
+                double rho = lm.rho_nodes[qq];
 
-            if (!curl) {
-                if (s.sampling_method == MGF_INTEGRATE)
-                    ComputeMGF_Integration(rho, z, zp, table.back()[qq].K);
-                else if (s.sampling_method == MGF_DCIM)
-                    ComputeMGF_DCIM(rho, z, zp, table.back()[qq].K);
-            } else {
-                if (s.sampling_method == MGF_INTEGRATE)
-                    ComputeCurlMGF_Integration(rho, z, zp, table.back()[qq].K);
-                else if (s.sampling_method == MGF_DCIM)
-                    ComputeCurlMGF_DCIM(rho, z, zp, table.back()[qq].K);
+                if (!curl) {
+                    if (s.sampling_method == MGF_INTEGRATE)
+                        ComputeMGF_Integration(rho, z, zp, table.back()[qq].K);
+                    else if (s.sampling_method == MGF_DCIM)
+                        ComputeMGF_DCIM(rho, z, zp, table.back()[qq].K);
+                } else {
+                    if (s.sampling_method == MGF_INTEGRATE)
+                        ComputeCurlMGF_Integration(rho, z, zp, table.back()[qq].K);
+                    else if (s.sampling_method == MGF_DCIM)
+                        ComputeCurlMGF_DCIM(rho, z, zp, table.back()[qq].K);
+                }
             }
         }
     }
+
 
 
     return;
@@ -1454,66 +1464,74 @@ void MGF::AppendMGFTable_rho(std::vector<std::vector<table_entry<N>>> &table, in
 
     AddTableMaps_rho();
 
-    smgf.SetLayers(0, 0);
-    i = 0;
-    m = 0;
 
-
-    // Traverse source z-nodes
-    for (int ss = 0; ss < lm.z_nodes[0].size(); ss++)
+    for (int ii = 0; ii < lm.layers.size(); ii++)
     {
-        // Traverse observer z-nodes
-        for (int tt = 0; tt < lm.z_nodes[0].size(); tt++)
+        for (int mm = 0; mm < lm.layers.size(); mm++)
         {
+            smgf.SetLayers(ii, mm);
 
-            double zp = lm.z_nodes[0][ss];
-            double z = lm.z_nodes[0][tt];
+            i = ii;
+            m = mm;
 
-            int idx_z = z_to_idx[z];
-            int idx_zp = z_to_idx[zp];
-
-
-            double rho = lm.rho_nodes[rho_idx];
-
-            int idx_row = idxpair_to_row[std::make_pair(idx_z, idx_zp)];
-
-            if (!curl)
+            // Traverse source z-nodes
+            for (int ss = 0; ss < lm.z_nodes[ii].size(); ss++)
             {
-                if (s.sampling_method == MGF_INTEGRATE)
+                // Traverse observer z-nodes
+                for (int tt = 0; tt < lm.z_nodes[mm].size(); tt++)
                 {
-                    table_entry<N> new_entry{};
-                    ComputeMGF_Integration(rho, z, zp, new_entry.K);
-                    // insert the new rho nodes for each z and zp pair
-                    table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                }
 
-                else if (s.sampling_method == MGF_DCIM)
-                {
-                    table_entry<N> new_entry{};
-                    ComputeMGF_DCIM(rho, z, zp, new_entry.K);
-                    table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                }
+                    double zp = lm.z_nodes[ii][ss];
+                    double z = lm.z_nodes[mm][tt];
 
+                    int idx_z = z_to_idx[z];
+                    int idx_zp = z_to_idx[zp];
+
+                    double rho = lm.rho_nodes[rho_idx];
+
+                    int idx_row = idxpair_to_row[std::make_pair(idx_z, idx_zp)];
+
+                    if (!curl)
+                    {
+                        if (s.sampling_method == MGF_INTEGRATE)
+                        {
+                            table_entry<N> new_entry{};
+                            ComputeMGF_Integration(rho, z, zp, new_entry.K);
+                            // insert the new rho nodes for each z and zp pair
+                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
+                        }
+
+                        else if (s.sampling_method == MGF_DCIM)
+                        {
+                            table_entry<N> new_entry{};
+                            ComputeMGF_DCIM(rho, z, zp, new_entry.K);
+                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
+                        }
+
+                    }
+                    else
+                    {
+                        if (s.sampling_method == MGF_INTEGRATE)
+                        {
+                            table_entry<N> new_entry{};
+                            ComputeCurlMGF_Integration(rho, z, zp, new_entry.K);
+                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
+                        }
+
+                        else if (s.sampling_method == MGF_DCIM)
+                        {
+                            table_entry<N> new_entry{};
+                            ComputeCurlMGF_DCIM(rho, z, zp, new_entry.K);
+                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
+                        }
+
+                    }
+                }
             }
-            else
-            {
-                if (s.sampling_method == MGF_INTEGRATE)
-                {
-                    table_entry<N> new_entry{};
-                    ComputeCurlMGF_Integration(rho, z, zp, new_entry.K);
-                    table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                }
 
-                else if (s.sampling_method == MGF_DCIM)
-                {
-                    table_entry<N> new_entry{};
-                    ComputeCurlMGF_DCIM(rho, z, zp, new_entry.K);
-                    table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                }
-
-            }
         }
     }
+
 
 
     return;
@@ -1596,7 +1614,7 @@ void MGF::GenerateTableMaps()
 }
 
 /*! \brief Consider one layer first.*/
-void MGF::AddTableMaps_z(int z_idx, int z_new_size)
+void MGF::AddTableMaps_z(int layer_idx, int z_idx, int z_new_size)
 {
 
     // ====== Generate maps between z-nodes and their index in the stackup ======
@@ -1606,47 +1624,56 @@ void MGF::AddTableMaps_z(int z_idx, int z_new_size)
 
     int map_size = z_to_idx.size();
 
-    int idx = 0 >= z_new_size ? 0*0 + 0 + z_new_size : 0 + z_new_size*z_new_size;
-    z_to_idx.insert(std::make_pair(lm.z_nodes[0][z_idx], idx));
+    int idx = layer_idx >= z_new_size ? layer_idx*layer_idx + layer_idx + z_new_size : layer_idx + z_new_size*z_new_size;
+    z_to_idx.insert(std::make_pair(lm.z_nodes[layer_idx][z_idx], idx));
 
 
     // ====== Generate a map for table entries ======
 
     int idx_row = idxpair_to_row.size();
 
+
     // Traverse observer z-nodes
-    for (int tt = 0; tt < lm.z_nodes[0].size(); tt++)
+    for (int ii = 0; ii < lm.layers.size(); ii++)
     {
+        for (int tt = 0; tt < lm.z_nodes[ii].size(); tt++)
+        {
 
-        double zp = lm.z_nodes[0][z_idx];
-        double z = lm.z_nodes[0][tt];
+            double zp = lm.z_nodes[layer_idx][z_idx];
+            double z = lm.z_nodes[ii][tt];
 
-        int idx_z = z_to_idx[z];
-        int idx_zp = z_to_idx[zp];
+            int idx_z = z_to_idx[z];
+            int idx_zp = z_to_idx[zp];
 
-        idxpair_to_row.insert(std::make_pair(std::make_pair(idx_z, idx_zp), idx_row));
+            idxpair_to_row.insert(std::make_pair(std::make_pair(idx_z, idx_zp), idx_row));
 
-        idx_row++;
+            idx_row++;
+        }
     }
+
 
     // Traverse source z-nodes
-    for (int tt = 0; tt < lm.z_nodes[0].size(); tt++)
+    for (int ii = 0; ii < lm.layers.size(); ii++)
     {
+        for (int tt = 0; tt < lm.z_nodes[ii].size(); tt++)
+        {
 
-        double zp = lm.z_nodes[0][tt];
+            double zp = lm.z_nodes[ii][tt];
 
-        if (zp == lm.z_nodes[0][z_idx])
-            continue;
+            if (zp == lm.z_nodes[layer_idx][z_idx])
+                continue;
 
-        double z = lm.z_nodes[0][z_idx];
+            double z = lm.z_nodes[layer_idx][z_idx];
 
-        int idx_z = z_to_idx[z];
-        int idx_zp = z_to_idx[zp];
+            int idx_z = z_to_idx[z];
+            int idx_zp = z_to_idx[zp];
 
-        idxpair_to_row.insert(std::make_pair(std::make_pair(idx_z, idx_zp), idx_row));
+            idxpair_to_row.insert(std::make_pair(std::make_pair(idx_z, idx_zp), idx_row));
 
-        idx_row++;
+            idx_row++;
+        }
     }
+
 
 
     int map_size_new = z_to_idx.size();

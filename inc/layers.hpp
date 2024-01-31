@@ -92,7 +92,7 @@ public:
 	
 	void ProcessLayers(double f);
     void SetZnodes_interp(double f, std::vector<double> &z_nodes, int N_lambda);
-    void SetZnodes_interpGrid(double f, std::vector<double> &z_nodes, int N_lambda, std::vector<double> grid_z);
+    void SetZnodes_interpGrid(double f, std::vector<std::vector<double>> &z_nodes, int N_lambda);
 
 	int FindLayer(double z);
 
