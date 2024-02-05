@@ -34,6 +34,7 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
+#include <numeric>
 
 #include "MGF.hpp"
 
@@ -54,8 +55,10 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "multiple_layers_interp_real.txt";
-        out_file2 = "multiple_layers_interp_imag.txt";
+        out_file1 = "plate_interp_real.txt";
+        //out_file1 = "multiple_layers_interp_real_noAdaptive.txt";
+        //out_file2 = "multiple_layers_interp_imag_noAdaptive.txt";
+        out_file2 = "plate_interp_imag.txt";
     }
     else
     {
@@ -72,7 +75,7 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 10.0e9;
+    double f = 3e8;
     double omega = 2.0*M_PI*f;
 
     // Some useful constants are provided via the Strata namespace
@@ -91,7 +94,7 @@ int main(int argc, char** argv)
     // Set the source and observation (obs) points
 
     double x_src = 0.0, y_src = 0.0;
-    double x_obs = 1.0e-2, y_obs = 0.0;
+    double x_obs = 5.0e-3, y_obs = 0.0;
 
     int Nx = 500; // Number of points in the sweep
     int Nz_interpolated = 100; // Number of points to be interpolated
@@ -103,7 +106,7 @@ int main(int argc, char** argv)
     std::cout << "x_obs_min: " << x_obs_min << "(m)" << std::endl;
     std::cout << "x_obs_max: " << x_obs_max << "(m)" << std::endl;
 
-    double lambda = lambda0/std::sqrt(2.2);
+    double lambda = lambda0/std::sqrt(12.5);
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
@@ -151,7 +154,8 @@ int main(int argc, char** argv)
     // Provide the layer manager with the z and rho nodes
     lm.ClearNodes_z();
     // Iterate over each sub-vector and insert its elements into z_nodes_1D
-    for (const auto& subVec : z_nodes_2D) {
+    for (const auto& subVec : z_nodes_2D)
+    {
         z_nodes_1D.insert(z_nodes_1D.end(), subVec.begin(), subVec.end());
     }
     lm.InsertNodes_z(z_nodes_1D);
@@ -253,7 +257,8 @@ int main(int argc, char** argv)
 
     if (print_log)
     {
-        std::cout << "Nz: " << mgf.lm.z_nodes[0].size() << std::endl;
+        for (int i = 0; i < mgf.lm.z_nodes.size(); i++)
+            std::cout << "Number of z nodes for " << i << "th layer is: " << mgf.lm.z_nodes[i].size() << std::endl;
         std::cout << "Nz_interpolated: " << Nz_interpolated << std::endl;
         std::cout << "z_interp_min: " << z_interp_min << ", z_interp_max: " << z_interp_max << std::endl;
         std::cout << "Initialize the interpolation table: " << Interpolation_initialization << "(ms)" << std::endl;

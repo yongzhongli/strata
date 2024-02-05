@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "MGFdata_metagrating_real.txt";
-        out_file2 = "MGFdata_metagrating_imag.txt";
+        out_file1 = "MGFdata_plate_real.txt";
+        out_file2 = "MGFdata_plate_imag.txt";
     }
     else
     {
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	lm.ProcessTechFile(tech_file);
 
 	// Set the analysis frequency and wave number
-	double f = 10.0e9;
+	double f = 3e8;
 	double omega = 2.0*M_PI*f;
 
 	// Some useful constants are provided via the Strata namespace
@@ -96,9 +96,9 @@ int main(int argc, char** argv)
 	// For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 10 wavelengths away from the source point
 
     double x_src = 0.0, y_src = 0.0;
-    double x_obs = 1.0e-2, y_obs = 0.0;
+    double x_obs = 5.0e-3, y_obs = 0.0;
 	
-	int Nz = 10; // Number of points in the sweep
+	int Nz = 12; // Number of points in the sweep
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
@@ -155,6 +155,8 @@ int main(int argc, char** argv)
 	outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 	outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
+
+
     std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
 	for (int ii = 0; ii < Nz; ii++)
     {
@@ -202,6 +204,9 @@ int main(int argc, char** argv)
     }
     std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
     static int MGF_computation = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count();
+
+
+
 
     if (print_log)
     {

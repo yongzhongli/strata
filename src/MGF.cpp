@@ -274,6 +274,9 @@ void MGF::updateZnodes(MGF &mgf)
             double z_spacing = mgf.lm.z_nodes[layer][ii + 1] - mgf.lm.z_nodes[layer][ii];
             int level = 1;
 
+            int i = lm.FindLayer(z_test);
+            int m = lm.FindLayer(z_src);
+            mgf.smgf.SetLayers(i, m);
             bool is_Midpoint_Correct = isMidpointCorrect(rho_test, z_test, z_src, mgf.s.adaptive_threshold, false);
 
             if (!is_Midpoint_Correct)
@@ -318,6 +321,10 @@ void MGF::updateRhonodes(MGF &mgf)
         double rho_spacing = lm.rho_nodes[ii + 1] - lm.rho_nodes[ii];
         int level = 1;
 
+        // verify if this point will be added based on the relative error rate
+        int i = lm.FindLayer(z_test);
+        int m = lm.FindLayer(z_src);
+        mgf.smgf.SetLayers(i, m);
         bool is_Midpoint_Correct = isMidpointCorrect(rho_test, z_test, z_src, mgf.s.adaptive_threshold, true);
 
         if (!is_Midpoint_Correct)
@@ -443,6 +450,10 @@ void MGF::test_addRhoTable_recursive(MGF &mgf, double rho_test, double rho_spaci
 
     for (int jj = 0; jj < 2; jj++)
     {
+        int i = lm.FindLayer(z_test);
+        int m = lm.FindLayer(z_src);
+        mgf.smgf.SetLayers(i, m);
+
         bool add_point_to_table = isMidpointCorrect(rho_tests_l1[jj], z_test, z_src, mgf.s.adaptive_threshold, true);
         if (!add_point_to_table)
         {
@@ -460,7 +471,11 @@ void MGF::test_addZTable_recursive(MGF &mgf, int layer_idx, double rho_test, dou
 
     for (int jj = 0; jj < 2; jj++)
     {
+        int i = lm.FindLayer(z_tests_l1[jj]);
+        int m = lm.FindLayer(z_tests_l1[jj]);
+        mgf.smgf.SetLayers(i, m);
         bool is_Midpoint_Correct = isMidpointCorrect(rho_test, z_tests_l1[jj], z_tests_l1[jj], mgf.s.adaptive_threshold, false);
+
         if (!is_Midpoint_Correct)
         {
             addZTable(mgf, z_tests_l1[jj], layer_idx);
@@ -1631,7 +1646,6 @@ void MGF::AddTableMaps_z(int layer_idx, int z_idx, int z_new_size)
     // ====== Generate a map for table entries ======
 
     int idx_row = idxpair_to_row.size();
-
 
     // Traverse observer z-nodes
     for (int ii = 0; ii < lm.layers.size(); ii++)
