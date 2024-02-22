@@ -55,10 +55,10 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "plate_interp_real.txt";
+        out_file1 = "multiple_layers_interp_real.txt";
         //out_file1 = "multiple_layers_interp_real_noAdaptive.txt";
         //out_file2 = "multiple_layers_interp_imag_noAdaptive.txt";
-        out_file2 = "plate_interp_imag.txt";
+        out_file2 = "multiple_layers_interp_imag.txt";
     }
     else
     {
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 3e8;
+    double f = 10e9;
     double omega = 2.0*M_PI*f;
 
     // Some useful constants are provided via the Strata namespace
@@ -107,6 +107,7 @@ int main(int argc, char** argv)
     std::cout << "x_obs_max: " << x_obs_max << "(m)" << std::endl;
 
     double lambda = lambda0/std::sqrt(12.5);
+
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
@@ -177,7 +178,7 @@ int main(int argc, char** argv)
 
     // Polynomial interpolation order
     s.order = 2;
-    s.order_z = 2;
+    s.order_z = 3;
 
     // Initialize the class with the given stackup and chosen settings.
     // The interpolation table will be generated at this point, so the initialization step could take a while.

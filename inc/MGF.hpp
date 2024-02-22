@@ -88,7 +88,7 @@ struct MGF_settings
 	int order = 3;
     int order_z = 3;
     double N_lambda = 10.0;
-    double adaptive_threshold = 0.01;
+    double adaptive_threshold = 0.05;
 	std::string filename, filename_curl;
 	bool load_table = false;
 	bool export_table = false;

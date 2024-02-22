@@ -277,7 +277,7 @@ void MGF::updateZnodes(MGF &mgf)
             int i = lm.FindLayer(z_test);
             int m = lm.FindLayer(z_src);
             mgf.smgf.SetLayers(i, m);
-            bool is_Midpoint_Correct = isMidpointCorrect(rho_test, z_test, z_src, mgf.s.adaptive_threshold, false);
+            bool is_Midpoint_Correct = isMidpointCorrect(rho_test, z_src, z_test, mgf.s.adaptive_threshold, false);
 
             if (!is_Midpoint_Correct)
             {
@@ -387,7 +387,7 @@ bool MGF::isMidpointCorrect(double rho, double z_src, double z_test, double adap
     std::vector<double> rmse;
     for (int i = 0; i < 5; i++)
     {
-        std::cout << i << ": G_integration = " << _G_integ[i] << ", G_interplation = " << _G_interp[i] << std::endl;
+        //std::cout << i << ": G_integration = " << _G_integ[i] << ", G_interplation = " << _G_interp[i] << std::endl;
 
         if (std::abs(_G_integ[i]) != 0)
             rmse.push_back(std::abs(_G_integ[i] - _G_interp[i]) / std::abs(_G_integ[i]));
@@ -395,10 +395,10 @@ bool MGF::isMidpointCorrect(double rho, double z_src, double z_test, double adap
 
     double rmse_mean = std::accumulate(rmse.begin(),rmse.end(),0.0) / rmse.size();
 
-    if (test_rho)
-        std::cout << "The RMSE for interpolation point at rho = " << rho << " is " << rmse_mean << std::endl;
-    else
-        std::cout << "The RMSE for interpolation point at z = " << z_test << " is " << rmse_mean << std::endl;
+    //if (test_rho)
+        //std::cout << "The RMSE for interpolation point at rho = " << rho << " is " << rmse_mean << std::endl;
+    //else
+        //std::cout << "The RMSE for interpolation point at z = " << z_test << " is " << rmse_mean << std::endl;
     if (rmse_mean > adaptive_threshold)
     {
         return false;
