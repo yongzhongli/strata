@@ -395,10 +395,10 @@ bool MGF::isMidpointCorrect(double rho, double z_src, double z_test, double adap
 
     double rmse_mean = std::accumulate(rmse.begin(),rmse.end(),0.0) / rmse.size();
 
-    //if (test_rho)
-        //std::cout << "The RMSE for interpolation point at rho = " << rho << " is " << rmse_mean << std::endl;
-    //else
-        //std::cout << "The RMSE for interpolation point at z = " << z_test << " is " << rmse_mean << std::endl;
+    if (test_rho)
+        std::cout << "The RMSE for interpolation point at rho = " << rho << " is " << rmse_mean << std::endl;
+    else
+        std::cout << "The RMSE for interpolation point at z = " << z_test << " is " << rmse_mean << std::endl;
     if (rmse_mean > adaptive_threshold)
     {
         return false;
