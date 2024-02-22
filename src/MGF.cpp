@@ -379,7 +379,7 @@ bool MGF::isMidpointCorrect(double rho, double z_src, double z_test, double adap
     std::vector<double> rmse;
     for (int i = 0; i < 5; i++)
     {
-        std::cout << i << ": G_integration = " << _G_integ[i] << ", G_interplation = " << _G_interp[i] << std::endl;
+        //std::cout << i << ": G_integration = " << _G_integ[i] << ", G_interplation = " << _G_interp[i] << std::endl;
 
         if (std::abs(_G_integ[i]) != 0)
             rmse.push_back(std::abs(_G_integ[i] - _G_interp[i]) / std::abs(_G_integ[i]));
