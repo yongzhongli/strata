@@ -34,7 +34,6 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-#include <numeric>
 
 #include "MGF.hpp"
 
@@ -55,10 +54,8 @@ int main(int argc, char** argv)
     else if (argc < 3)
     {
         tech_file = argv[1];
-        out_file1 = "multiple_layers_interp_real.txt";
-        //out_file1 = "multiple_layers_interp_real_noAdaptive.txt";
-        //out_file2 = "multiple_layers_interp_imag_noAdaptive.txt";
-        out_file2 = "multiple_layers_interp_imag.txt";
+        out_file1 = "MGFdata_metagrating_interp_real.txt";
+        out_file2 = "MGFdata_metagrating_interp_imag.txt";
     }
     else
     {
@@ -137,11 +134,10 @@ int main(int argc, char** argv)
 
     // This class stores all the settings we want to use
     MGF_settings s;
-
-    std::vector<std::vector<double>> z_nodes_2D;
-    std::vector<double> z_nodes_1D;
-
-    lm.SetZnodes_interpGrid(f, z_nodes_2D, s.N_lambda); // Number of interpolation points
+    //std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
+    std::vector<double> z_grid_test = {-0.99e-3, 4.99e-3};
+    std::vector<double> z_nodes;
+    lm.SetZnodes_interpGrid(f, z_nodes, s.N_lambda, z_grid_test); // Number of interpolation points
     s.interpolate_z = true;
     // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
     double electrical_size_x = (x_obs_max - x_obs_min)/lambda;
@@ -154,12 +150,7 @@ int main(int argc, char** argv)
 
     // Provide the layer manager with the z and rho nodes
     lm.ClearNodes_z();
-    // Iterate over each sub-vector and insert its elements into z_nodes_1D
-    for (const auto& subVec : z_nodes_2D)
-    {
-        z_nodes_1D.insert(z_nodes_1D.end(), subVec.begin(), subVec.end());
-    }
-    lm.InsertNodes_z(z_nodes_1D);
+    lm.InsertNodes_z(z_nodes);
 
     lm.ClearNodes_rho();
     lm.InsertNodes_rho(rho_nodes);
@@ -178,7 +169,7 @@ int main(int argc, char** argv)
 
     // Polynomial interpolation order
     s.order = 2;
-    s.order_z = 3;
+    s.order_z = 2;
 
     // Initialize the class with the given stackup and chosen settings.
     // The interpolation table will be generated at this point, so the initialization step could take a while.
@@ -201,7 +192,7 @@ int main(int argc, char** argv)
     outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
     outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
-    std::cout << "Number of z points: " << z_nodes_1D.size() << std::endl;
+    std::cout << "Number of z points: " << z_nodes.size() << std::endl;
     std::cout << "Number of rho points: " << rho_nodes.size() << std::endl;
 
     std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
@@ -258,8 +249,7 @@ int main(int argc, char** argv)
 
     if (print_log)
     {
-        for (int i = 0; i < mgf.lm.z_nodes.size(); i++)
-            std::cout << "Number of z nodes for " << i << "th layer is: " << mgf.lm.z_nodes[i].size() << std::endl;
+        std::cout << "Nz: " << mgf.lm.z_nodes[0].size() << std::endl;
         std::cout << "Nz_interpolated: " << Nz_interpolated << std::endl;
         std::cout << "z_interp_min: " << z_interp_min << ", z_interp_max: " << z_interp_max << std::endl;
         std::cout << "Initialize the interpolation table: " << Interpolation_initialization << "(ms)" << std::endl;
