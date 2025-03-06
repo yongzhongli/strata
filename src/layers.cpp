@@ -501,34 +501,35 @@ void LayerManager::SetZnodes_interp(double f, std::vector<double> &z_nodes, int 
 }
 
 /*! \brief Function to set the z nodes based on the FFT grid to tabulate multilayer Green's function. Consider just object in one layer*/
-void LayerManager::SetZnodes_interpGrid(double f, std::vector<std::vector<double>> &z_nodes, int N_lambda)
+void LayerManager::SetZnodes_interpGrid(double f, std::vector<double> &z_nodes, int N_lambda, std::vector<double> grid_z)
 {
-    z_nodes.resize(layers.size());
+    // Some useful constants are provided via the Strata namespace
     double lambda0 = 1/(f * std::sqrt(strata::eps0*strata::mu0));
+    double dis_threshold = 1e-8;
+    double z_min = grid_z[0];
+    double z_max = grid_z[grid_z.size()-1];
 
-    for (int i = 0; i < layers.size(); i++)
+    // find which layer the nodes occupy
+    int idx_layer = FindLayer(z_min);
+
+    double h = z_max - z_min;
+    double lambda = lambda0/std::sqrt(layers[idx_layer].epsr);
+    double electrical_size = h / lambda;
+    double _Nz = N_lambda * electrical_size;
+    int Nz = (int)std::round(_Nz);
+
+
+    // within each layer, the interpolation points are uniform
+    if (Nz > 2)
+        linspace(z_min,z_max,Nz,z_nodes);
+    else
     {
-        double z_min = layers[i].zmin;
-        double z_max = layers[i].zmax;
-
-        double h = z_max - z_min;
-        double threshold = 0.025 * h;
-        double lambda = lambda0/std::sqrt(layers[i].epsr);
-        double electrical_size = h / lambda;
-
-        double _Nz = N_lambda * electrical_size;
-        int Nz = (int)std::round(_Nz);
-
-        // within each layer, the interpolation points are uniform
-        if (Nz > 2)
-            linspace(z_min + threshold, z_max - threshold, Nz, z_nodes[i]);
-        else
-        {
-            z_nodes[i].push_back(z_min + threshold);
-            z_nodes[i].push_back(z_max - threshold);
-        }
+        z_nodes.push_back(z_min);
+        //z_nodes.push_back((z_min + z_max)/2);
+        z_nodes.push_back(z_max);
 
     }
+
     return ;
 
 }
