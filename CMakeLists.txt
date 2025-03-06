@@ -75,7 +75,7 @@ else()
         PREFIX ${OPENBLAS_ROOT}
         BUILD_IN_SOURCE ON
         CONFIGURE_COMMAND ""
-        BUILD_COMMAND make
+        BUILD_COMMAND make TARGET=HASWELL
         INSTALL_COMMAND make PREFIX=${OPENBLAS_ROOT} install
     )
     set(OPENBLAS_LIB
@@ -167,7 +167,7 @@ SET(MGF_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/spectral_MGF.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lapacke_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/coordinate_system.cpp
-        inc/interpolation_table.hpp)
+)
 
 add_library(strata SHARED ${MGF_SRC})
 target_link_libraries(strata ${OPENBLAS_LIB} ${AmosBessel_LIB} ${YAML_LIB})

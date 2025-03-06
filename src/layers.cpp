@@ -123,12 +123,12 @@ void LayerManager::ProcessTechFile_yaml(std::string tech_file, double units)
 
 			double epsr = layer["epsr"].as<double> (1.0);
 			double mur = layer["mur"].as<double> (1.0);
+			double epsr_im = layer["epsr_im"].as<double> (0.0);
 			double sigma = layer["sigma"].as<double> (0.0);
 			double sigmamu = layer["sigmamu"].as<double> (0.0);
 
 			// Add this layer to the full layer-set
-			AddLayer(zmin, zmax, epsr, mur, sigma, sigmamu);
-			
+			AddLayer(zmin, zmax, epsr, mur, sigma, sigmamu, epsr_im);
 		}
 	}
 	else
@@ -292,7 +292,7 @@ void LayerManager::ProcessTechFile_tech(std::string tech_file, double units)
 		if (layer_type == "Dielectric" || layer_type == "dielectric")
 		{
 			// Add this layer to the full layer-set
-			AddLayer(zmin, zmax, epsr, mur, sigma, sigmamu);
+			AddLayer(zmin, zmax, epsr, mur, sigma, sigmamu, 0.0);
 		}
 
 	}
@@ -308,7 +308,7 @@ void LayerManager::ProcessTechFile_tech(std::string tech_file, double units)
 
 
 /*! \brief Function to add a new layer to the layer set. It is the user's responsibility to make sure that the z_min and z_max do not overlap with the z-extent of any other layer in the set.*/
-void LayerManager::AddLayer(double zmin, double zmax, double epsr, double mur, double sigma, double sigmamu)
+void LayerManager::AddLayer(double zmin, double zmax, double epsr, double mur, double sigma, double sigmamu, double epsr_im)
 {
 
 	if (zmax - zmin <= 0.0)
@@ -336,7 +336,7 @@ void LayerManager::AddLayer(double zmin, double zmax, double epsr, double mur, d
 	}
 
 	// Create a new layer
-	Layer layer (zmin, zmax, epsr, mur, sigma, sigmamu);
+	Layer layer (zmin, zmax, epsr, mur, sigma, sigmamu, epsr_im);
 	layers.insert(layers.begin() + position, layer);
 	
 	return;
@@ -369,13 +369,13 @@ void LayerManager::SetHalfspaces(double _epsr_top, double _mur_top, double _sigm
 void LayerManager::ProcessLayers(double f)
 {
 
-	auto epsilon_complex = [] (double eps0, double epsr, double sigma, double omega)
-		{
-			if (omega > 0.0)
-				return std::complex<double> ((epsr*eps0), (-sigma/omega));
-			else
-				return std::complex<double> ((epsr*eps0), 0.0);
-		};
+	auto epsilon_complex = [] (double eps0, double epsr, double epsr_im, double sigma, double omega)
+	{
+		if (omega > 0.0)
+			return std::complex<double> ((epsr*eps0), epsr_im*eps0 + (-sigma/omega));
+		else
+			return std::complex<double> ((epsr*eps0),  epsr_im*eps0 + 0.0);
+	};
 	
 	// Make sure that any consecutive layers with the same material properties are merged
 	MergeLayersWithSameMaterial();
@@ -384,8 +384,8 @@ void LayerManager::ProcessLayers(double f)
 
 	// ------ Half space parameters ------
 
-	eps_top = epsilon_complex(eps0, epsr_top, sigma_top, omega);
-	eps_bot = epsilon_complex(eps0, epsr_bot, sigma_bot, omega);
+	eps_top = epsilon_complex(eps0, epsr_top, 0.0, sigma_top, omega);
+	eps_bot = epsilon_complex(eps0, epsr_bot, 0.0, sigma_bot, omega);
 	
 	mu_top = std::complex<double> ((mur_top * mu0), 0.0);
 	mu_bot = std::complex<double> ((mur_bot * mu0), 0.0);
@@ -411,7 +411,7 @@ void LayerManager::ProcessLayers(double f)
 
 		layers[ii].layerID = ii;
 
-		eps[ii] = epsilon_complex(eps0, layers[ii].epsr, layers[ii].sigma, omega);
+		eps[ii] = epsilon_complex(eps0, layers[ii].epsr, layers[ii].epsr_im, layers[ii].sigma, omega);
 		mu[ii] = std::complex<double> ((layers[ii].mur * mu0), 0.0);
 
 		k[ii] = omega*std::sqrt(eps[ii]*mu[ii]);
@@ -566,6 +566,18 @@ int LayerManager::FindLayer(double z)
 /*! \brief Function to print layer information for debugging and logging purposes.*/
 void LayerManager::PrintLayerData(std::ofstream *out_file, bool print_to_terminal)
 {
+	auto get_signed_imag_string = [](double imag)
+	{
+		std::string result;
+		if(imag == 0) return result;
+
+		if (imag > 0)
+			result = "+";
+		else
+			result = "-";
+		result += std::to_string(std::abs(imag)) + "j";
+		return result;
+	};
 
 	std::string message;
 
@@ -591,7 +603,7 @@ void LayerManager::PrintLayerData(std::ofstream *out_file, bool print_to_termina
 		message += "zmax: " + std::to_string(layers[ii].zmax) + "\n";
 		message += "zmin: " + std::to_string(layers[ii].zmin) + "\n";
 		message += "Height: " + std::to_string(layers[ii].h) + "\n";
-		message += "Relative permittivity: " + std::to_string(layers[ii].epsr) + "\n";
+		message += "Relative permittivity: " + std::to_string(layers[ii].epsr) + get_signed_imag_string(layers[ii].epsr_im) + "\n";
 		message += "Relative permeability: " + std::to_string(layers[ii].mur) + "\n";
 		message += "Electrical conductivity: " + std::to_string(layers[ii].sigma) + "\n";
 		if (layers_processed)
@@ -824,6 +836,7 @@ void LayerManager::MergeLayersWithSameMaterial(double tol)
 		// Check if the layer above is of the same material as this one
 		if (std::abs(layers[ii].epsr - layers[jj].epsr) < tol &&
 		    std::abs(layers[ii].mur - layers[jj].mur) < tol &&
+		    std::abs(layers[ii].epsr_im - layers[jj].epsr_im) < tol &&
 		    std::abs(layers[ii].sigma - layers[jj].sigma) < tol &&
 		    std::abs(layers[ii].sigmamu - layers[jj].sigmamu) < tol)
 		{
