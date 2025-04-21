@@ -153,7 +153,7 @@ void MGF::Initialize(double _f, LayerManager &_lm, MGF_settings &_s)
 		if (!s.load_table || load_info != 0 || s.export_table)
 		{
 			if (s.verbose)
-				//std::cout << "--- Generating interpolation table..." << std::flush;
+				std::cout << "--- Generating interpolation table..." << std::flush;
 
 			TabulateMGF(MGF_table, false);
 
@@ -236,7 +236,7 @@ void MGF::Initialize(double _f, LayerManager &_lm, MGF_settings &_s)
 void MGF::adaptiveInterpolation(MGF &mgf)
 {
     updateRhonodes(mgf);
-    updateZnodes(mgf);
+    //updateZnodes(mgf);
 
     return;
 }

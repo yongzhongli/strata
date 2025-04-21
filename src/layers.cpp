@@ -539,11 +539,12 @@ void LayerManager::SetZnodes_interpGrid(double f, std::vector<double> &z_nodes, 
 int LayerManager::FindLayer(double z)
 {
 
-	double tol = (layers[0].zmax - layers.back().zmin)*1.0e-15;
+	double tol = std::numeric_limits<double>::epsilon() * std::max(std::abs(z), std::abs(layers.back().zmax));
 
-	if (z > layers[0].zmax)
+
+	if (z > layers[0].zmax + tol)
 		return -1;
-	if (z < layers.back().zmin)
+	if (z < layers.back().zmin - tol)
 		return layers.size();
 
 	for (int ii = 0; ii < layers.size(); ii++)
@@ -551,8 +552,8 @@ int LayerManager::FindLayer(double z)
 		if (layers[ii].zmax - z > tol && z - layers[ii].zmin > tol)
 			// The point is in layer ii, and not at an interface
 			return ii;
-		else if (std::abs(layers[ii].zmax - z) <= tol)
-			// The point is at the top interface of this layer
+		else if (std::abs(layers[ii].zmin - z) <= tol)
+			// The point is at the bottom interface of this layer
 			return ii;
 		else if (ii == (int)(layers.size() - 1))
 			// The point must be at the bottom interface of the bottom layer

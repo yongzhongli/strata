@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 30.0e9;
+    double f = 1.0e9;
     double omega = 2.0*M_PI*f;
 
     // Some useful constants are provided via the Strata namespace
@@ -110,19 +110,84 @@ int main(int argc, char** argv)
     // - along the rho axis, Lagrange polynomial interpolation of a given order is performed.
 
     // In this example, only two points are needed along z
-    std::vector<double> z_nodes = {z_src,z_obs};
+    //std::vector<double> z_nodes = {z_src,z_obs};
 
     // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
-    double lambda = lambda0/std::sqrt(9.8);
-    double electrical_size = (x_obs_max - x_obs_min)/lambda;
-    int N_rho = 5.0*electrical_size;
+    //double lambda = lambda0/std::sqrt(9.8);
+    //double electrical_size = (x_obs_max - x_obs_min)/lambda;
+    //int N_rho = 5.0*electrical_size;
 
     // Strata comes with Matlab-like linspace and logspace functions for convenience
-    std::vector<double> rho_nodes;
-    strata::linspace(std::sqrt(std::pow(x_obs_min, 2) + std::pow(y_obs, 2)), std::sqrt(std::pow(x_obs_max, 2) + std::pow(y_obs, 2)), N_rho, rho_nodes);
+    //std::vector<double> rho_nodes;
+    //strata::linspace(std::sqrt(std::pow(x_obs_min, 2) + std::pow(y_obs, 2)), std::sqrt(std::pow(x_obs_max, 2) + std::pow(y_obs, 2)), N_rho, rho_nodes);
 
     // Provide the layer manager with the z and rho nodes
+
+    // z-nodes and their corresponding layer indices
+    std::vector<double> z_nodes = {
+        7.8e-05, 8.134e-05, 8.468e-05, 8.802e-05,
+        3.9962e-05, 4.2888e-05, 4.5814e-05, 4.874e-05,
+        5.1666e-05, 5.4592e-05, 5.7518e-05, 6.0444e-05,
+        6.337e-05, 6.6296e-05, 6.9222e-05, 7.2148e-05,
+        7.5074e-05, 7.8e-05
+    };
+
+    std::vector<int> z_layers = {
+        0, 0, 0, 0,   // First 4 z-nodes are in layer 0
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 // Remaining 14 z-nodes are in layer 1
+    };
+
+    // rho-nodes as provided
+    std::vector<double> rho_nodes = {
+        0.0,
+        2.4902439487712573e-05,
+        4.9804878975425146e-05,
+        7.470731846313773e-05,
+        9.960975795085029e-05,
+        0.00012451219743856286,
+        0.00014941463692627545,
+        0.00017431707641398802,
+        0.00019921951590170058,
+        0.00022412195538941315,
+        0.0002490243948771257,
+        0.0002739268343648383,
+        0.0002988292738525509,
+        0.00032373171334026344,
+        0.00034863415282797603,
+        0.00037353659231568857,
+        0.00039843903180340116,
+        0.00042334147129111376,
+        0.0004482439107788263,
+        0.0004731463502665389,
+        0.0004980487897542514,
+        0.0005229512292419641,
+        0.0005478536687296766,
+        0.0005727561082173892,
+        0.0005976585477051018,
+        0.0006225609871928143,
+        0.0006474634266805269,
+        0.0006723658661682394,
+        0.0006972683056559521,
+        0.0007221707451436646,
+        0.0007470731846313771,
+        0.0007719756241190898,
+        0.0007968780636068023,
+        0.0008217805030945149,
+        0.0008466829425822275,
+        0.0008715853820699401,
+        0.0008964878215576526,
+        0.0009213902610453652,
+        0.0009462927005330778,
+        0.0009711951400207903
+    };
+
+
     lm.ClearNodes_z();
+    std::vector<double> z_node{1};
+    for (int ii = 0; ii < z_nodes.size(); ii++) {
+        z_node[0] = z_nodes[ii];
+        lm.InsertNodes_z(z_node, z_layers[ii]);
+    }
     lm.InsertNodes_z(z_nodes);
 
     lm.ClearNodes_rho();
