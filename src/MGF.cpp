@@ -1322,10 +1322,8 @@ void MGF::TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl
 
 
 	// Traverse source layers
-    progress_bar bar_ii (lm.layers.size(), 50, "Generating interpolation table...", true);
 	for (int ii = 0; ii < lm.layers.size(); ii++)
 	{
-        bar_ii.UpdateProgressBar(ii);
 		// Traverse observer layers
 		for (int mm = 0; mm < lm.layers.size(); mm++)
 		{
