@@ -34,12 +34,13 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-
+#include <omp.h>
 #include "MGF.hpp"
 
 
 int main(int argc, char** argv)
 {
+    omp_set_num_threads(4);
     bool print_log = true;
     std::cout << "===========================" << std::endl;
     std::cout << "TestInterp()" << std::endl;
@@ -72,12 +73,8 @@ int main(int argc, char** argv)
     lm.ProcessTechFile(tech_file);
 
     // Set the analysis frequency and wave number
-    double f = 10e9;
+    double f = 1e9;
     double omega = 2.0*M_PI*f;
-
-    // Some useful constants are provided via the Strata namespace
-    double k0 = omega*std::sqrt(strata::eps0*strata::mu0);
-    double lambda0 = 2.0*M_PI/k0;
 
     // Precompute frequency-dependent layer data
     lm.ProcessLayers(f);
@@ -96,15 +93,6 @@ int main(int argc, char** argv)
     int Nx = 500; // Number of points in the sweep
     int Nz_interpolated = 100; // Number of points to be interpolated
 
-    // For this example, we'll sweep the observation point along the x axis from 10^{-4} wavelengths to 1 wavelengths away from the source point
-    double x_obs_min = std::abs(1e-4*lambda0); // define the range of rho
-    double x_obs_max = std::abs(1.0*lambda0);
-
-    std::cout << "x_obs_min: " << x_obs_min << "(m)" << std::endl;
-    std::cout << "x_obs_max: " << x_obs_max << "(m)" << std::endl;
-
-    double lambda = lambda0/std::sqrt(12.5);
-
 
     double dis_threshold = 1e-8;
     double z_min = lm.layers.back().zmin + dis_threshold;
@@ -117,7 +105,6 @@ int main(int argc, char** argv)
     std::vector<double> x_vec;
     std::vector<double> z_src_vec;
     std::vector<double> z_obs_vec;
-    strata::linspace(x_obs_min, x_obs_max, Nx, x_vec);
     strata::linspace(z_interp_min, z_interp_max, Nz_interpolated, z_src_vec);
     strata::linspace(z_interp_min, z_interp_max, Nz_interpolated, z_obs_vec);
 
@@ -134,23 +121,21 @@ int main(int argc, char** argv)
 
     // This class stores all the settings we want to use
     MGF_settings s;
-    //std::vector<double> z_grid_test = {-2.3e-06,0.0023022999999999997};
-    std::vector<double> z_grid_test = {-0.99e-3, 4.99e-3};
-    std::vector<double> z_nodes;
-    lm.SetZnodes_interpGrid(f, z_nodes, s.N_lambda, z_grid_test); // Number of interpolation points
-    s.interpolate_z = true;
-    // Along rho, we'll pick 5 samples per wavelength based on the layer with maximum permittivity (12.5)
-    double electrical_size_x = (x_obs_max - x_obs_min)/lambda;
-    int N_rho = 10.0*electrical_size_x;
+    s.interpolate_z = false;
+
 
 
     // Strata comes with Matlab-like linspace and logspace functions for convenience
-    std::vector<double> rho_nodes; strata::linspace(std::sqrt(std::pow(x_obs_min, 2) + std::pow(y_obs, 2)), std::sqrt(std::pow(x_obs_max, 2) + std::pow(y_obs, 2)), std::max(N_rho,10), rho_nodes);
-
+    std::vector<double> rho_nodes = {0.0, 5.11155e-05, 0.000102231, 0.000153347, 0.000204462, 0.000255578, 0.000306693, 0.000357809, 0.000408924, 0.00046004, 0.000511155, 0.000562271, 0.000613386, 0.000664502, 0.000715617, 0.000766733, 0.000817849, 0.000868964, 0.00092008, 0.000971195};
 
     // Provide the layer manager with the z and rho nodes
-    lm.ClearNodes_z();
-    lm.InsertNodes_z(z_nodes);
+    lm.z_nodes.resize(lm.layers.size());
+    lm.z_nodes[0] = {0.000078,0.000083,0.000088};
+    lm.z_nodes[1] = {0.000071,0.000074,0.000078};
+    lm.z_nodes[2] = {0.000064,0.000067,0.000071};
+    lm.z_nodes[3] = {0.000057,0.000060,0.000064};
+    lm.z_nodes[4] = {0.000040,0.000048,0.000057};
+
 
     lm.ClearNodes_rho();
     lm.InsertNodes_rho(rho_nodes);
@@ -192,7 +177,6 @@ int main(int argc, char** argv)
     outfile1 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
     outfile2 << "\nz_prime z Gxx Gxy Gxz Gyx Gyy Gyz Gzx Gzy Gzz Gphi" << std::endl;
 
-    std::cout << "Number of z points: " << z_nodes.size() << std::endl;
     std::cout << "Number of rho points: " << rho_nodes.size() << std::endl;
 
     std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();

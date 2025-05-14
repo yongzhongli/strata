@@ -18,7 +18,7 @@
 # along with Strata.  If not, see <https://www.gnu.org/licenses/>.
 
 set(STRATA_LIB
-        "${CMAKE_CURRENT_SOURCE_DIR}/../build/${CMAKE_SHARED_LIBRARY_PREFIX}strata${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cmake-build-debug/${CMAKE_SHARED_LIBRARY_PREFIX}strata${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set(STRATA_INC "${CMAKE_CURRENT_SOURCE_DIR}/../inc")
 
 SET(INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../inc)
