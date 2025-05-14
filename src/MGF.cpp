@@ -1313,6 +1313,22 @@ void MGF::TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl
 
     table.clear();
 
+	// Precompute row‑block offsets for each (ii,mm) pair
+	std::vector<int> layerOffsets(lm.layers.size() * lm.layers.size());
+	int offset = 0;
+	for (int ii = 0; ii < lm.layers.size(); ++ii) {
+		for (int mm = 0; mm < lm.layers.size(); ++mm) {
+			layerOffsets[ii * lm.layers.size() + mm] = offset;
+			offset +=
+				static_cast<int>(lm.z_nodes[ii].size()) *
+				static_cast<int>(lm.z_nodes[mm].size());
+		}
+	}
+	const int totalRows = offset;
+
+	// Pre‑allocate the table: totalRows × lm.rho_nodes.size()
+	table.assign(totalRows, std::vector<table_entry<N>>(lm.rho_nodes.size()));
+
 
 	// ====== Generate index maps ======
 
@@ -1320,46 +1336,65 @@ void MGF::TabulateMGF(std::vector<std::vector<table_entry<N>>> &table, bool curl
 
 	// ====== Generate table ======
 
+	MGF mgfLocal = *this;
+	// loop‐indices and temporaries for the parallel region
+	int ii, mm, ss, tt, qq, rowIdx, base;
+	double z, zp, rho;
+
+
+#pragma omp parallel for collapse(2) firstprivate(mgfLocal) schedule(dynamic) \
+    default(none) \
+    shared(table, lm, s, layerOffsets, curl) \
+    private(ii, mm, ss, tt, qq, rowIdx, rho, z, zp, base)
 
 	// Traverse source layers
-	for (int ii = 0; ii < lm.layers.size(); ii++)
+	for (ii = 0; ii < lm.layers.size(); ii++)
 	{
+
 		// Traverse observer layers
-		for (int mm = 0; mm < lm.layers.size(); mm++)
+		for (mm = 0; mm < lm.layers.size(); mm++)
 		{
-			smgf.SetLayers(ii, mm);
-			i = ii;
-			m = mm;
+			base = layerOffsets[ii*lm.layers.size() + mm];
+			int zLenSrc = (int)lm.z_nodes[ii].size();
+			int zLenObs = (int)lm.z_nodes[mm].size();
+
 			// Traverse source z-nodes
-			for (int ss = 0; ss < lm.z_nodes[ii].size(); ss++)
+			for (ss = 0; ss < zLenSrc; ss++)
 			{
 				// Traverse observer z-nodes
-				for (int tt = 0; tt < lm.z_nodes[mm].size(); tt++)
+				for (tt = 0; tt < zLenObs; tt++)
 				{
 
-					double zp = lm.z_nodes[ii][ss];
-					double z = lm.z_nodes[mm][tt];					
+					// Compute the unique row index
+					rowIdx = base + ss*zLenObs + tt;
 
-					// Generate all entries for this row
-					table.push_back(std::vector<table_entry<N>> (lm.rho_nodes.size()));
+					// Update thread‑local state
+					mgfLocal.i = ii;
+					mgfLocal.m = mm;
+					mgfLocal.smgf.SetLayers(ii, mm);
 
-					for (int qq = 0; qq < lm.rho_nodes.size(); qq++)
+					zp = lm.z_nodes[ii][ss];
+					z = lm.z_nodes[mm][tt];
+
+
+					for (qq = 0; qq < lm.rho_nodes.size(); qq++)
 					{
-						double rho = lm.rho_nodes[qq];
+						rho = lm.rho_nodes[qq];
+						auto &Kref = table[rowIdx][qq].K;
 
 						if (!curl)
 						{
 							if (s.sampling_method == MGF_INTEGRATE)
-								ComputeMGF_Integration(rho, z, zp, table.back()[qq].K);
+								mgfLocal.ComputeMGF_Integration(rho, z, zp, Kref);
 							else if (s.sampling_method == MGF_DCIM)
-								ComputeMGF_DCIM(rho, z, zp, table.back()[qq].K);
+								mgfLocal.ComputeMGF_DCIM(rho, z, zp, Kref);
 						}
 						else
 						{
 							if (s.sampling_method == MGF_INTEGRATE)
-								ComputeCurlMGF_Integration(rho, z, zp, table.back()[qq].K);
+								mgfLocal.ComputeCurlMGF_Integration(rho, z, zp, Kref);
 							else if (s.sampling_method == MGF_DCIM)
-								ComputeCurlMGF_DCIM(rho, z, zp, table.back()[qq].K);
+								mgfLocal.ComputeCurlMGF_DCIM(rho, z, zp, Kref);
 						}
 					}
 				}
