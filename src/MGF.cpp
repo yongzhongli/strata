@@ -1512,69 +1512,79 @@ void MGF::AppendMGFTable_rho(std::vector<std::vector<table_entry<N>>> &table, in
 
     AddTableMaps_rho();
 
+	// Grow every row to make room for one more rho‑column
+    for (auto &row : table)
+        row.resize(rho_new_size);
+
+	// Pull out the fixed number of layers and rhos
+    const int L = static_cast<int>(lm.layers.size());
+    const int R = static_cast<int>(lm.rho_nodes.size());
+
+
+    // Make a thread‑local copy of *this* (carries i,m, smgf, maps, settings…)
+    MGF mgfLocal = *this;
+	int ii, mm, ss, tt, idx_z, idx_zp, idx_row;
+    int zLenSrc, zLenObs;
+    double z, zp, rho;
+
+    #pragma omp parallel for collapse(2) \
+    firstprivate(mgfLocal, rho_idx, rho_new_size, curl, L, R) \
+    schedule(dynamic) default(none) \
+    shared(table) \
+    private(ii, mm, ss, tt, idx_z, idx_zp, idx_row, zLenSrc, zLenObs, z, zp, rho)
 	// Traverse source layers
-    for (int ii = 0; ii < lm.layers.size(); ii++)
+    for (ii = 0; ii < L; ii++)
     {
     	// Traverse observer layers
-        for (int mm = 0; mm < lm.layers.size(); mm++)
+        for (mm = 0; mm < L; mm++)
         {
-            smgf.SetLayers(ii, mm);
-
-            i = ii;
-            m = mm;
+        	// Cache these per (ii,mm)
+			zLenSrc = static_cast<int>(lm.z_nodes[ii].size());
+			zLenObs = static_cast<int>(lm.z_nodes[mm].size());
 
             // Traverse source z-nodes
-            for (int ss = 0; ss < lm.z_nodes[ii].size(); ss++)
+            for (ss = 0; ss < zLenSrc; ss++)
             {
                 // Traverse observer z-nodes
-                for (int tt = 0; tt < lm.z_nodes[mm].size(); tt++)
+                for (tt = 0; tt < zLenObs; tt++)
                 {
+                	// Set thread‑local layer state
+		            mgfLocal.i = ii;
+		            mgfLocal.m = mm;
+		            mgfLocal.smgf.SetLayers(ii, mm);
 
-                    double zp = lm.z_nodes[ii][ss];
-                    double z = lm.z_nodes[mm][tt];
 
-                	int idx_z = z_to_idx[{mm, z}];
-                	int idx_zp = z_to_idx[{ii, zp}];
+                	// Fetch coords & row index
+		            zp      = lm.z_nodes[ii][ss];
+		            z       = lm.z_nodes[mm][tt];
+		            idx_z   = mgfLocal.z_to_idx.at({mm, z});
+		            idx_zp  = mgfLocal.z_to_idx.at({ii, zp});
+		            idx_row = mgfLocal.idxpair_to_row.at({idx_z, idx_zp});
 
-                    double rho = lm.rho_nodes[rho_idx];
+                	rho     = lm.rho_nodes[rho_idx];
+					auto &row = table[idx_row];
 
-                    int idx_row = idxpair_to_row[std::make_pair(idx_z, idx_zp)];
+                	// Shift everything to the right of rho_idx
+					for (int j = rho_new_size - 1; j > rho_idx; --j)
+						row[j] = row[j - 1];
 
-                    if (!curl)
-                    {
-                        if (s.sampling_method == MGF_INTEGRATE)
-                        {
-                            table_entry<N> new_entry{};
-                            ComputeMGF_Integration(rho, z, zp, new_entry.K);
-                            // insert the new rho nodes for each z and zp pair
-                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                        }
+                	// Compute the new sample
+		            table_entry<N> new_entry{};
+		            if (!curl) {
+		                if (mgfLocal.s.sampling_method == MGF_INTEGRATE)
+		                    mgfLocal.ComputeMGF_Integration(rho, z, zp, new_entry.K);
+		                else
+		                    mgfLocal.ComputeMGF_DCIM(rho, z, zp, new_entry.K);
+		            } else {
+		                if (mgfLocal.s.sampling_method == MGF_INTEGRATE)
+		                    mgfLocal.ComputeCurlMGF_Integration(rho, z, zp, new_entry.K);
+		                else
+		                    mgfLocal.ComputeCurlMGF_DCIM (rho, z, zp, new_entry.K);
+		            }
 
-                        else if (s.sampling_method == MGF_DCIM)
-                        {
-                            table_entry<N> new_entry{};
-                            ComputeMGF_DCIM(rho, z, zp, new_entry.K);
-                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                        }
+		            // Write it into the slot
+		            row[rho_idx] = new_entry;
 
-                    }
-                    else
-                    {
-                        if (s.sampling_method == MGF_INTEGRATE)
-                        {
-                            table_entry<N> new_entry{};
-                            ComputeCurlMGF_Integration(rho, z, zp, new_entry.K);
-                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                        }
-
-                        else if (s.sampling_method == MGF_DCIM)
-                        {
-                            table_entry<N> new_entry{};
-                            ComputeCurlMGF_DCIM(rho, z, zp, new_entry.K);
-                            table[idx_row].insert(table[idx_row].begin() + rho_idx, new_entry);
-                        }
-
-                    }
                 }
             }
 
